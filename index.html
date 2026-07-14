@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vocal Pitch Trainer</title>
+<link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAEd0lEQVR42oVWTascRRQ951b3fL74Eo0xhgQx4kJRJEiSRYxuom/jQiELV4KgIHEvon9AQRQRfSC4ECIILiOoIISIG3ciGIVk41Y0ycvMvJnX3VXHRX9Mdc8YazH0dFXXPfeee8+9pKUEUS8h+nOHxZXTqt8rPidj+0KyPhc/sN5j/VvuMbLGtQCZtEDVKCTFQKqdIBARQtXXaWmEXRciAwJIKAB0SQ8kwPh8E4Ml2ApNaSyEopDCMiQEFBsgoWAutf4owNBGi8pazFTpJVmdUpKGkM28L0ird0FzveYrc479De/F8ooKHQjADARCuCPzdEa/mMj75p3FecB0GMrbayZZRtWo+VyLPZitUB/xHIL3cr0RoCZHrAqDRHOCVY4pig6pfM8ee5gPHNF0gsTVe3H81DAsGs01RyJENDDip8Fnhmyevrg1+voTHD+m2ztwLrbfJh0SQKp2wroVsEzpGB41mfHY4eGXH9npE2GyU8eq8wlX69HWkSVp5Y0zzeY2Hg2/eN+dPRV2p7UNdQJalwMBNiGCoDjo5AqSECApSZCmg7cvYDCA9wDVwYEuNEO7fFhFsbMCNkaL97az7YsgefCA3XNAhQdFK5ljXI1qKGYrTfnfARXMMJlmH29n3/2ofRvKcvgc5rS7qzxfFi+7xFhHb7S8ue1HCBgM4Cz8ehUHNntvvY7hIExuua2nef8hZXvV3WpD01qSS3ER1CKbyHP44M6c1GTG40flZE89iWOH3bkzyisDYheaRVWzRC7ViWGEMziTM01mydaWnX5CWZZ9epEPHrXHH0WWc9Tnvk14vyZPiSQStaqka1WjCE2nAoQc8wVGQ/fCc8gy3Z6EP64nJ09AIgUCaaIsp3NSEyqx5kBR7xBIsspjzefu2bP9d9/svfayHTmE2cxfvY6793M4IKy48hPmeyqCBN2eMEka5hg1o2RdxxPMNJ2mr76UvvMGssz5gF5SfHu5+GCb2R7HQ/31D/K8uPR9cv758Ns1FBkGAwUtg1x6EPWDljQqy3nfvckr53VzR4uFCm8H9zNNkRf5h58DsMEIvYF2Fv7SZd24xeGGfGCroLseQAJVZ2qQzOAsFAW8Zy+B9/7an2YDbIwRAnyghH4ff99kkqzOCaoSCo6W1KJpSHpVZqZON29g8y575hQSx33j4rOvwjc/cDSCD5BYKooE57ruE/C5JFYa7XplY6VLmI5C9TEUgvLMzp3hIw+FX34PV362/gA0tCcVrswuRiqfyftyj2a95om9cQgqs7TK2fkU8EDK4bilWurey9hANlUI5aukER4FTwXQCaHudOR4swIZwnLwUaeTNToj0ACv4EErFaHhoCwPb0mvhqNKpYOa6uuIc4O7mg9ozqBst5qA0JkqQCjQEqZD0VbnFdX9sKnNslgbxaK88oWCXzJTcdAaNwWQ5kADwa66qOsCWRlQqKYVtjiJDDQMSpWdJplXsmVtpGLFbjaTbt+upoGyqYpRt+O66Ec9Rm3Gq0sd6RAPsWuamYi1o/n/L0H/An1ZRtag2uqDAAAAAElFTkSuQmCC">
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0f1417;--panel:#161d21;--panel-2:#1c252a;--line:#2a353b;
+    --ink:#e8eef0;--muted:#8fa1a8;--dim:#5f7078;--accent:#4ec9b0;
+    --good:#4ec9b0;--ok:#e0c04a;--bad:#e0684a;
+    --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+    --sans:'Inter',system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.5;min-height:100vh;
+    background-image:radial-gradient(circle at 50% -10%,rgba(78,201,176,0.06),transparent 55%);}
+  .wrap{max-width:720px;margin:0 auto;padding:28px 20px 64px}
+  header{margin-bottom:24px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
+  .title-row{display:flex;align-items:center;gap:14px}
+  .app-logo{width:48px;height:48px;border-radius:12px;flex:none;box-shadow:0 4px 14px rgba(0,0,0,0.4)}
+  h1{font-size:26px;font-weight:600;letter-spacing:-0.01em}
+  h1 .accent{color:var(--accent)}
+  .sub{color:var(--muted);font-size:14px;margin-top:6px;max-width:52ch}
+  .byline{font-family:var(--mono);font-size:12px;color:var(--dim);margin-top:10px}
+  .byline b{color:var(--muted);font-weight:500}
+  .feedback-link{background:none;border:none;color:var(--accent);font-family:var(--mono);font-size:12px;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px}
+  .feedback-link:hover{filter:brightness(1.15)}
+
+  .modal-backdrop{position:fixed;inset:0;background:rgba(6,10,12,0.72);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50;backdrop-filter:blur(2px)}
+  .modal-backdrop[hidden]{display:none}
+  .modal{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+  .modal h3{font-size:18px;font-weight:600;margin-bottom:6px}
+  .modal-note{font-size:13px;color:var(--muted);margin-bottom:16px}
+  .modal-close{position:absolute;top:14px;right:14px;background:none;border:none;color:var(--dim);font-size:18px;cursor:pointer;line-height:1;padding:4px}
+  .modal-close:hover{color:var(--ink)}
+  .fb-label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--dim);margin:12px 0 5px}
+  .fb-label span{text-transform:none;letter-spacing:0}
+  .modal input,.modal textarea{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:10px 12px;font-family:var(--sans);font-size:14px;resize:vertical}
+  .modal input:focus,.modal textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
+  .fb-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+  .fb-thanks{margin-top:16px;text-align:center;color:var(--accent);font-weight:600;font-size:15px}
+  .fb-thanks[hidden]{display:none}
+
+  .tabs{display:flex;gap:4px;margin:24px 0 16px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px}
+  .tab{flex:1;background:transparent;border:none;color:var(--muted);font-family:var(--sans);font-size:13px;font-weight:500;padding:10px 8px;border-radius:8px;cursor:pointer;transition:background .15s,color .15s}
+  .tab:hover{color:var(--ink)}
+  .tab.active{background:var(--panel-2);color:var(--accent)}
+  .tab-desc{font-size:13px;color:var(--dim);margin:-6px 2px 18px;font-family:var(--mono)}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}
+  .panel-label{font-family:var(--mono);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--dim);margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .voice-tag{font-family:var(--mono);font-size:10px;letter-spacing:0.06em;color:var(--dim);border:1px solid var(--line);border-radius:6px;padding:2px 6px;text-transform:none}
+  .help-line{font-size:13px;color:var(--muted);margin-bottom:10px}
+  .step-num{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--accent);color:#04120e;font-family:var(--sans);font-size:11px;font-weight:700;margin-right:4px}
+  .step-comment{font-size:13px;color:var(--muted);margin:-4px 0 12px}
+  .play-help{font-size:12px;color:var(--dim);margin:12px 2px 4px;line-height:1.6}
+  .play-help b{color:var(--muted);font-weight:600}
+
+  .method-letter{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#04120e;font-size:12px;font-weight:700;margin-right:7px}
+  .method-tag{font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center}
+  .or-divider{display:flex;align-items:center;gap:12px;margin:16px 2px;color:var(--dim)}
+  .or-divider::before,.or-divider::after{content:"";flex:1;height:1px;background:var(--line)}
+  .or-divider span{font-family:var(--mono);font-size:12px;letter-spacing:0.1em;text-transform:uppercase}
+
+  .arp-box{margin-top:0;padding:14px;background:var(--panel-2);border:1px solid var(--line);border-radius:12px}
+  .arp-title{font-size:14px;font-weight:600;margin-bottom:2px;display:flex;align-items:center;flex-wrap:wrap}
+  .arp-gloss{font-weight:400;color:var(--muted);font-size:12px}
+  .arp-controls{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-top:12px}
+  .arp-field{display:flex;flex-direction:column;gap:4px;font-family:var(--mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--dim)}
+  .arp-field select{text-transform:none;letter-spacing:0}
+  .arp-check{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ink);cursor:pointer;padding-bottom:9px}
+  .arp-check input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
+  .arp-field-group{display:flex;flex-direction:column;gap:5px}
+  .arp-range-label{font-family:var(--mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--dim)}
+  .arp-range{display:flex;align-items:center;gap:8px}
+  .arp-dash{color:var(--dim);font-size:13px}
+  .arp-gen{background:var(--accent);color:#04120e;border:none;font-weight:600}
+  .arp-gen:hover{filter:brightness(1.08)}
+  .arp-msg{margin-top:10px;font-size:13px;color:var(--ok)}
+  .arp-msg[hidden]{display:none}
+
+  .cap-mode{text-transform:none;letter-spacing:0;color:var(--dim);font-weight:400}
+  .timing-group.disabled{opacity:0.4;pointer-events:none;filter:grayscale(0.5)}
+
+  .seq-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;min-height:34px;margin-bottom:14px}
+  .chip{background:var(--panel-2);border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:13px;font-weight:500;padding:6px 10px;border-radius:8px;cursor:pointer;transition:border-color .15s;display:inline-flex;align-items:center;gap:6px}
+  .chip:hover{border-color:var(--bad)}
+  .chip .idx{color:var(--dim);font-size:11px}
+  .chip.playing{border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  .empty-seq{color:var(--dim);font-family:var(--mono);font-size:13px}
+
+  .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  select,button{font-family:var(--sans);font-size:14px}
+  select{background:var(--panel-2);border:1px solid var(--line);color:var(--ink);padding:9px 12px;border-radius:8px;cursor:pointer;max-height:40px}
+  select:focus{outline:2px solid var(--accent);outline-offset:1px}
+  .btn{background:var(--panel-2);border:1px solid var(--line);color:var(--ink);padding:9px 14px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-weight:500;transition:border-color .15s,background .15s}
+  .btn:hover{border-color:var(--dim)}
+  .btn:active{transform:translateY(1px)}
+  .btn.ghost{color:var(--muted)}
+  .hint{font-family:var(--mono);font-size:12px;color:var(--dim);margin-left:auto}
+
+  .timbre{display:flex;gap:4px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:3px}
+  .timbre button{background:transparent;border:none;color:var(--muted);font-size:13px;font-weight:500;padding:6px 12px;border-radius:6px;cursor:pointer;transition:background .15s,color .15s}
+  .timbre button.active{background:var(--panel);color:var(--accent)}
+  .timbre button:disabled{opacity:.5;cursor:default}
+
+  .timing-row{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:16px}
+  .timing-group{display:flex;flex-direction:column;gap:6px}
+  .timing-cap{font-family:var(--mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--dim)}
+  .timing-note{font-size:12px;color:var(--muted);font-style:italic}
+  .radioset{display:inline-flex;gap:3px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:3px;width:fit-content}
+  .radioset button{background:transparent;border:none;color:var(--muted);font-family:var(--sans);font-size:13px;font-weight:500;padding:6px 12px;border-radius:6px;cursor:pointer;transition:background .15s,color .15s}
+  .radioset button:hover{color:var(--ink)}
+  .radioset button.active{background:var(--panel);color:var(--accent)}
+  .radioset button:disabled{opacity:.5;cursor:default}
+  .piano-status{font-family:var(--mono);font-size:10px;color:var(--dim);margin-left:2px}
+
+  /* main control row: buttons left, info stage right */
+  .stage-row{display:flex;gap:14px;align-items:stretch;margin-bottom:18px;flex-wrap:wrap}
+  .btn-col{display:flex;flex-direction:column;gap:10px;justify-content:center}
+  .btn-go{background:var(--accent);border:none;color:#04120e;font-weight:600;padding:12px 20px;border-radius:10px;font-size:15px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;justify-content:center;transition:filter .15s,transform .1s}
+  .btn-go:hover{filter:brightness(1.08)}
+  .btn-go:active{transform:translateY(1px)}
+  .btn-go:disabled{opacity:.45;cursor:default;filter:none;transform:none}
+  .btn-seq{background:transparent;border:1px solid var(--accent);color:var(--accent);font-weight:600;padding:12px 18px;border-radius:10px;font-size:15px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;justify-content:center;transition:background .15s,transform .1s}
+  .btn-seq:hover{background:rgba(78,201,176,0.1)}
+  .btn-seq:active{transform:translateY(1px)}
+  .btn-seq:disabled{opacity:.4;cursor:default}
+
+  /* the info stage */
+  .stage{flex:1;min-width:240px;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:14px 18px;display:flex;flex-direction:row;align-items:center;gap:16px;min-height:104px;position:relative;overflow:hidden}
+  .stage-anim{flex:none;display:flex;align-items:center;justify-content:center;min-width:0}
+  .stage-anim:empty{display:none}
+  .stage-text{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0}
+  .stage-status{font-size:28px;font-weight:700;color:var(--accent);letter-spacing:-0.01em;line-height:1.05;transition:color .2s}
+  .stage-status.warn{color:var(--bad)}
+  .stage-status.muted{color:var(--muted);font-weight:600;font-size:19px}
+  .stage-sub{font-family:var(--mono);font-size:12px;color:var(--dim)}
+
+  /* equalizer wave animation (vertical bars, sits left of the status word) */
+  .wave{display:none;align-items:flex-end;gap:4px;height:44px}
+  .wave.on{display:flex}
+  .wave span{width:5px;background:var(--accent);border-radius:3px;height:8px;animation:eq 0.9s ease-in-out infinite}
+  .wave span:nth-child(1){animation-delay:0s}
+  .wave span:nth-child(2){animation-delay:.12s}
+  .wave span:nth-child(3){animation-delay:.24s}
+  .wave span:nth-child(4){animation-delay:.36s}
+  .wave span:nth-child(5){animation-delay:.18s}
+  .wave span:nth-child(6){animation-delay:.30s}
+  .wave span:nth-child(7){animation-delay:.06s}
+  @keyframes eq{0%,100%{height:8px}50%{height:44px}}
+
+  /* calm dots that disappear one at a time during the Sing window (left column, wraps) */
+  .sing-dots{display:none;align-items:center;flex-wrap:wrap;gap:7px;max-width:120px}
+  .sing-dots.on{display:flex}
+  .sing-dots span{width:10px;height:10px;border-radius:50%;background:var(--accent);opacity:1;transition:opacity .35s ease, transform .35s ease}
+  .sing-dots span.gone{opacity:0.12;transform:scale(0.6)}
+  .sing-dots span.fine{width:8px;height:8px}
+  .sing-dots span.fine.gone{transform:scale(0.55)}
+  @media (prefers-reduced-motion:reduce){
+    .wave span{animation:none;height:24px}
+    .sing-dots span{transition:none}
+  }
+
+  .readout{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+  .cell{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .cell .k{font-family:var(--mono);font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--dim);margin-bottom:4px}
+  .cell .v{font-family:var(--mono);font-size:24px;font-weight:500;letter-spacing:-0.02em}
+  .cell .v small{font-size:14px;color:var(--muted);font-weight:400}
+  .plain{background:rgba(78,201,176,0.06);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:18px;font-size:14px;color:var(--ink);min-height:0}
+  .plain.hidden{display:none}
+  .plain b{color:var(--accent);font-weight:600}
+
+  .meter{position:relative;height:96px;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .meter .grid-line{position:absolute;top:14px;bottom:26px;width:1px;background:var(--line)}
+  .meter .center{position:absolute;top:8px;bottom:8px;left:50%;width:2px;background:var(--dim);transform:translateX(-50%);border-radius:2px}
+  .meter .scale{position:absolute;bottom:6px;font-family:var(--mono);font-size:10px;color:var(--dim)}
+  .needle{position:absolute;top:14px;bottom:26px;left:50%;width:3px;border-radius:3px;background:var(--accent);transform:translateX(-50%);opacity:0;transition:left .07s linear,opacity .12s,background .12s;box-shadow:0 0 12px currentColor}
+  .needle-cap{position:absolute;top:6px;left:50%;width:10px;height:10px;border-radius:50%;background:inherit;transform:translateX(-50%)}
+  .meter .band{position:absolute;top:14px;bottom:26px;left:calc(50% - 15%);width:30%;background:rgba(78,201,176,0.07);border-left:1px dashed rgba(78,201,176,0.25);border-right:1px dashed rgba(78,201,176,0.25)}
+
+  .results{margin-top:14px}
+  .results-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:10px}
+  .rcell{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:12px 8px;text-align:center}
+  .rcell.good{border-color:var(--good)}.rcell.ok{border-color:var(--ok)}.rcell.bad{border-color:var(--bad)}
+  .rcell .rk{font-family:var(--mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--dim)}
+  .rcell .exp{font-family:var(--mono);font-size:18px;font-weight:600;margin:2px 0 8px}
+  .rcell .you{font-family:var(--mono);font-size:18px;font-weight:600;margin:2px 0}
+  .rcell.good .you{color:var(--good)}.rcell.ok .you{color:var(--ok)}.rcell.bad .you{color:var(--bad)}
+  .rcell .dev{font-family:var(--mono);font-size:12px;margin-top:2px}
+  .rcell .plainmini{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.3}
+  .rcell.good .dev{color:var(--good)}.rcell.ok .dev{color:var(--ok)}.rcell.bad .dev{color:var(--bad)}
+  .score{font-family:var(--mono);font-size:13px;color:var(--muted);margin-bottom:12px}
+  .score b{color:var(--accent);font-weight:600}
+
+  /* beginners vocabulary */
+  .vocab{margin-bottom:14px}
+  .vocab summary{cursor:pointer;list-style:none;font-family:var(--mono);font-size:13px;color:var(--accent);padding:12px 16px;background:var(--panel);border:1px solid var(--line);border-radius:12px;display:flex;align-items:center;gap:8px;user-select:none}
+  .vocab summary::-webkit-details-marker{display:none}
+  .vocab summary .chev{transition:transform .2s;color:var(--dim)}
+  .vocab[open] summary .chev{transform:rotate(90deg)}
+  .vocab[open] summary{border-bottom-left-radius:0;border-bottom-right-radius:0}
+  .vocab-body{background:var(--panel);border:1px solid var(--line);border-top:none;border-radius:0 0 12px 12px;padding:4px 16px 16px}
+  .vocab-body h4{font-size:13px;color:var(--ink);margin:14px 0 4px;font-weight:600}
+  .vocab-body p{font-size:13px;color:var(--muted);margin:0 0 6px}
+  .vocab-body .ex{font-family:var(--mono);color:var(--accent)}
+  .vocab-body .flat{color:var(--ok)}
+  .vocab-body .sharp{color:var(--bad)}
+
+  footer{margin-top:30px;padding-top:18px;border-top:1px solid var(--line);font-family:var(--mono);font-size:12px;color:var(--dim);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+
+  .hidden{display:none}
+  @media (max-width:560px){
+    .stage{min-width:100%;order:2}
+    .btn-col{flex-direction:row;width:100%;order:1}
+    .btn-go,.btn-seq{flex:1}
+  }
+  @media (max-width:480px){.readout{grid-template-columns:1fr}.cell .v{font-size:20px}h1{font-size:22px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">ear training · voice · intonation</div>
+    <div class="title-row"><img class="app-logo" src="data:image/png;base64,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" alt="Vocal Pitch Trainer icon" width="48" height="48"><h1>Vocal Pitch <span class="accent">Trainer</span></h1></div>
+    <p class="sub">Hear tones, sing them back. Build a phrase of up to nine tones — or generate a random arpeggio — then practice it and see how close you sing.</p>
+    <p class="byline">Created by <b>N. Scherbak</b> · <button class="feedback-link" id="feedback-open">send feedback</button></p>
+  </header>
+
+  <details class="vocab">
+    <summary><span class="chev">▶</span> New to this? What tones, semitones &amp; sharp/flat mean</summary>
+    <div class="vocab-body">
+      <h4>Notes</h4>
+      <p>Music uses seven letter names — A B C D E F G — that repeat over and over as you go higher. A note written like <span class="ex">C4</span> means "the C in the 4th octave"; the higher the number, the higher the pitch.</p>
+      <h4>Semitone (half step)</h4>
+      <p>The smallest normal step between two notes — the distance from one key to the very next key on a piano, black or white. For example <span class="ex">C → C♯</span> is one semitone. Most letter-to-letter steps are two semitones, but <span class="ex">E → F</span> and <span class="ex">B → C</span> are only one.</p>
+      <h4>Tone (whole step)</h4>
+      <p>Two semitones stacked together. <span class="ex">C → D</span> is one tone; <span class="ex">C → E</span> is two tones. When this app says you sang "one and a half tones lower," it means your note was three semitones below the target.</p>
+      <h4>Sharp &amp; flat</h4>
+      <p>These are the musical words for small pitch differences. <span class="sharp">Sharp (♯)</span> means <em>a little too high</em>; <span class="flat">flat (♭)</span> means <em>a little too low</em>. As symbols they also name the in-between notes (the piano's black keys), like <span class="ex">F♯</span>. In singing, "you're a bit sharp" just means "you're singing slightly above the note."</p>
+      <h4>Cents</h4>
+      <p>A fine ruler for pitch: one semitone is divided into 100 cents, so a whole tone is 200 cents. A difference under about 15 cents is so small most ears hear it as "in tune."</p>
+    </div>
+  </details>
+
+  <section class="panel">
+    <div class="panel-label">
+      <span class="step-num">1</span> Selected tones
+      <span class="voice-tag" id="voice-tag">bass → soprano · E2–C6</span>
+    </div>
+    <p class="step-comment">Choose which tones you'll practice.</p>
+    <p class="help-line">Fill the phrase one of two ways — add tones yourself, <em>or</em> generate a random arpeggio. Either choice replaces what's there.</p>
+
+    <div class="method">
+      <div class="method-tag"><span class="method-letter">A</span> Add tones yourself</div>
+      <div class="seq-row" id="seq-chips"></div>
+      <div class="controls">
+        <select id="add-note" aria-label="Note to add"></select>
+        <button class="btn" id="add-btn">+ Add</button>
+        <button class="btn ghost" id="clear-btn">Clear</button>
+        <span class="hint" id="seq-hint">1/9 tones</span>
+      </div>
+    </div>
+
+    <div class="or-divider"><span>or</span></div>
+
+    <div class="arp-box">
+      <div class="arp-title"><span class="method-letter">B</span> Random arpeggio <span class="arp-gloss">(the notes of a chord, played in sequence)</span></div>
+      <div class="arp-controls">
+        <label class="arp-field">
+          <span>Chord</span>
+          <select id="arp-shape">
+            <option>Major triad</option>
+            <option>Minor triad</option>
+            <option>Major 7th</option>
+            <option>Dominant 7th</option>
+            <option>Minor 7th</option>
+            <option>Octave</option>
+          </select>
+        </label>
+        <label class="arp-field">
+          <span>Distinct tones</span>
+          <select id="arp-count"></select>
+        </label>
+        <label class="arp-check">
+          <input type="checkbox" id="arp-updown"> Ascending + descending
+        </label>
+      </div>
+      <div class="arp-controls">
+        <div class="arp-field-group">
+          <span class="arp-range-label">Select range for the random sequence</span>
+          <div class="arp-range">
+            <select id="arp-lo" aria-label="Lowest note"></select>
+            <span class="arp-dash">to</span>
+            <select id="arp-hi" aria-label="Highest note"></select>
+          </div>
+        </div>
+        <button class="btn arp-gen" id="arp-gen">🎲 Generate</button>
+      </div>
+      <div class="arp-msg" id="arp-msg" hidden></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-label">
+      <span class="step-num">2</span> Sound &amp; playback
+      <div class="timbre" id="timbre" role="group" aria-label="Playback sound">
+        <button data-timbre="tone" class="active">Pure tone</button>
+        <button data-timbre="piano">Piano</button>
+      </div>
+      <span class="piano-status" id="piano-status"></span>
+    </div>
+    <p class="step-comment">Pick how the reference tones sound and how fast they play.</p>
+
+    <div class="timing-row">
+      <div class="timing-group">
+        <div class="timing-cap">Playback tempo</div>
+        <div class="radioset" id="tempo-set" role="group" aria-label="Playback tempo">
+          <button data-tempo="default" class="active">Default</button>
+          <button data-tempo="slow">Slow</button>
+          <button data-tempo="medium">Medium</button>
+          <button data-tempo="high">High</button>
+        </div>
+        <div class="timing-note" id="tempo-note">How fast the app plays the tones to you. Useful for longer sequences.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-label"><span class="step-num">3</span> Grading</div>
+    <p class="step-comment">Choose how your singing is judged against the tones.</p>
+
+    <div class="timing-row">
+      <div class="timing-group">
+        <div class="timing-cap">How singing is graded</div>
+        <div class="radioset" id="grade-mode" role="group" aria-label="Grading mode">
+          <button data-grade="follow" class="active">Follow me</button>
+          <button data-grade="clock">On the clock</button>
+        </div>
+        <div class="timing-note" id="grade-note">Sing at your own pace — the app follows you. Hold each tone about half a second so it counts.</div>
+      </div>
+      <div class="timing-group" id="singtime-group">
+        <div class="timing-cap">Singing time for each tone <span class="cap-mode">(On the clock mode)</span></div>
+        <div class="radioset" id="sing-time" role="group" aria-label="Singing time per tone">
+          <button data-t="default" class="active">Default</button>
+          <button data-t="1000">1 sec</button>
+          <button data-t="2000">2 sec</button>
+          <button data-t="3000">3 sec</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-label"><span class="step-num">4</span> Play &amp; sing</div>
+    <p class="step-comment">Hear the tones and sing them back.</p>
+
+    <div class="stage-row">
+      <div class="btn-col">
+        <button class="btn-go" id="play-tone-btn">▶ Play a tone</button>
+        <button class="btn-seq" id="play-phrase-btn">▶ Play a phrase</button>
+      </div>
+      <div class="stage" id="stage" aria-live="polite">
+        <div class="stage-anim" id="stage-anim">
+          <div class="wave" id="wave" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <div class="sing-dots" id="sing-dots" aria-hidden="true"></div>
+        </div>
+        <div class="stage-text">
+          <div class="stage-status muted" id="stage-status">Ready — press Play.</div>
+          <div class="stage-sub" id="stage-sub"></div>
+        </div>
+      </div>
+    </div>
+    <p class="play-help" id="play-help"><b>Play a tone</b> — hear each tone on its own, one at a time.  ·  <b>Play a phrase</b> — hear the whole sequence, then sing it back.</p>
+
+    <div class="readout">
+      <div class="cell"><div class="k">Target</div><div class="v" id="target-out">—</div></div>
+      <div class="cell"><div class="k">You sang</div><div class="v" id="note-out">—</div></div>
+      <div class="cell"><div class="k">Off target</div><div class="v" id="cents-out">—</div></div>
+    </div>
+    <div class="plain hidden" id="plain-line"></div>
+
+    <div class="meter" id="meter">
+      <div class="band"></div>
+      <div class="grid-line" style="left:20%"></div>
+      <div class="grid-line" style="left:80%"></div>
+      <div class="center"></div>
+      <div class="needle" id="needle"><span class="needle-cap"></span></div>
+      <span class="scale" style="left:8px">−50¢ flat</span>
+      <span class="scale" style="right:8px">sharp +50¢</span>
+    </div>
+  </section>
+
+  <section class="panel results hidden" id="results">
+    <div class="panel-label"><span class="step-num">5</span> Expected vs. sung</div>
+    <div class="score hidden" id="score"></div>
+    <div class="results-grid" id="results-grid"></div>
+  </section>
+
+  <footer>
+    <span>Web Audio · nothing uploaded · tone mode runs offline</span>
+    <span>Allow microphone access to begin</span>
+  </footer>
+
+  <div class="modal-backdrop" id="fb-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="fb-title">
+      <button class="modal-close" id="fb-close" aria-label="Close">✕</button>
+      <h3 id="fb-title">Send feedback</h3>
+      <p class="modal-note">Thoughts, bugs, or ideas for the trainer? I'd love to hear them.</p>
+      <label class="fb-label" for="fb-email">Your email <span>(optional)</span></label>
+      <input type="email" id="fb-email" placeholder="you@example.com" autocomplete="email">
+      <label class="fb-label" for="fb-msg">Feedback</label>
+      <textarea id="fb-msg" rows="5" placeholder="What worked, what didn't, what you'd like to see…"></textarea>
+      <div class="fb-actions">
+        <button class="btn ghost" id="fb-cancel">Cancel</button>
+        <button class="btn-go" id="fb-send">Send</button>
+      </div>
+      <div class="fb-thanks" id="fb-thanks" hidden>Thank you for the feedback!</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const NOTES=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+  const noteToMidi=n=>{const m=n.match(/^([A-G]#?)(-?\d)$/);return NOTES.indexOf(m[1])+((+m[2])+1)*12;};
+  const midiToFreq=m=>440*Math.pow(2,(m-69)/12);
+  const noteToFreq=n=>midiToFreq(noteToMidi(n));
+  const freqToNoteData=f=>{
+    const exact=69+12*Math.log2(f/440);
+    const midi=Math.round(exact);
+    const name=NOTES[((midi%12)+12)%12]+(Math.floor(midi/12)-1);
+    const centsFromNearest=Math.round((exact-midi)*100);
+    return {name,centsFromNearest,midi};
+  };
+
+  const RANGE_LO=noteToMidi("E2"), RANGE_HI=noteToMidi("C6");
+  const ALL_NOTES=[];
+  for(let m=RANGE_LO;m<=RANGE_HI;m++){ ALL_NOTES.push(NOTES[m%12]+(Math.floor(m/12)-1)); }
+  const midiToName=m=>NOTES[((m%12)+12)%12]+(Math.floor(m/12)-1);
+
+  // Arpeggio chord shapes as semitone offsets from a root (one octave's worth).
+  const ARP_SHAPES={
+    "Major triad":[0,4,7],
+    "Minor triad":[0,3,7],
+    "Major 7th":[0,4,7,11],
+    "Dominant 7th":[0,4,7,10],
+    "Minor 7th":[0,3,7,10],
+    "Octave":[0,12]
+  };
+  // Build `count` distinct ascending tones from a shape, cycling up octaves,
+  // rooted so the whole thing fits within [loMidi, hiMidi]. Returns note names or null.
+  function buildArpeggio(shapeName, count, loMidi, hiMidi, updown){
+    const shape=ARP_SHAPES[shapeName]||ARP_SHAPES["Major triad"];
+    // generate ascending distinct midis from a given root
+    function fromRoot(root){
+      const out=[]; let oct=0;
+      while(out.length<count){
+        for(const s of shape){
+          const m=root+s+12*oct;
+          if(m>hiMidi) return out;      // ran past the top
+          out.push(m);
+          if(out.length>=count) break;
+        }
+        oct++;
+        if(oct>10) break;
+      }
+      return out;
+    }
+    // try roots that are chord-roots within range, pick one that fits `count`
+    const candidates=[];
+    for(let root=loMidi; root<=hiMidi; root++){
+      const seq=fromRoot(root);
+      if(seq.length===count && seq[seq.length-1]<=hiMidi && seq[0]>=loMidi) candidates.push(seq);
+    }
+    if(!candidates.length) return null;   // range too small for this count
+    let asc=candidates[Math.floor(Math.random()*candidates.length)];
+    let names=asc.map(midiToName);
+    if(updown && asc.length>1){
+      // mirror back down without repeating the peak: C E G E C
+      const down=asc.slice(0,-1).reverse().map(midiToName);
+      names=names.concat(down);
+    }
+    return names;
+  }
+
+  // playback tone durations (ms) by tempo — playback only
+  const TEMPO_PLAY={ default:null, slow:1000, medium:500, high:300 };
+
+  const $=id=>document.getElementById(id);
+  const chipsEl=$("seq-chips");
+  const targetOut=$("target-out"),noteOut=$("note-out"),centsOut=$("cents-out"),plainLine=$("plain-line");
+  const needle=$("needle"),results=$("results"),resultsGrid=$("results-grid"),scoreEl=$("score");
+  const playToneBtn=$("play-tone-btn"),playPhraseBtn=$("play-phrase-btn"),seqHint=$("seq-hint"),addSel=$("add-note");
+  const stageStatus=$("stage-status"),stageSub=$("stage-sub"),wave=$("wave"),singDots=$("sing-dots");
+  const pianoStatus=$("piano-status");
+
+  let seq=[];                  // start empty — user chooses tones de novo
+  let timbre="tone";
+  let singTimeMode="default";  // "default" | 1000 | 2000 | 3000 (per-tone ms)
+  let tempo="default";         // playback tempo (playback only)
+  let gradeMode="follow";      // "follow" = segment & align (default) · "clock" = fixed slots
+  let ac=null,analyser=null,buf=null,micStream=null,raf=null;
+  let listening=false,running=false;
+  let liveCents=null,liveNoteData=null;
+  let stepIdx=0, stepCaps=[];
+  let seqFromArp=false;        // true when the current sequence came from Generate (not manual)
+
+  ALL_NOTES.forEach(n=>{ const o=document.createElement("option"); o.textContent=n; if(n==="C4")o.selected=true; addSel.appendChild(o); });
+
+  // ---------- plain-words description of a deviation ----------
+  // cents: signed, target-relative (positive = you sang higher than target)
+  function plainWords(cents){
+    const a=Math.abs(cents);
+    if(a<=15) return {txt:"on pitch", tone:"good"};
+    const dir = cents>0 ? "higher" : "lower";
+    if(a<50) return {txt:"slightly "+dir+" (less than a quarter-tone)", tone: a<=35?"ok":"bad"};
+    // convert cents to tones (200 cents = 1 tone), round to nearest half-tone
+    const tones = a/200;
+    const halves = Math.round(tones*2)/2;
+    const label = fmtTones(halves);
+    return {txt:"about "+label+" "+dir, tone:"bad"};
+  }
+  function fmtTones(h){
+    // h is a multiple of 0.5
+    if(h===0.5) return "half a tone";
+    if(h===1) return "one tone";
+    if(h===1.5) return "one and a half tones";
+    if(h===2) return "two tones";
+    if(h===2.5) return "two and a half tones";
+    if(h===3) return "three tones";
+    if(h===3.5) return "three and a half tones";
+    // larger: words for whole, "and a half" for fraction
+    const whole=Math.floor(h);
+    const words=["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve"];
+    const wpart = whole<words.length ? words[whole] : String(whole);
+    if(h-whole===0.5) return wpart+" and a half tones";
+    return wpart+" tones";
+  }
+
+  // ---------- timbre ----------
+  document.querySelectorAll("#timbre button").forEach(b=>{
+    b.addEventListener("click",async ()=>{
+      timbre=b.dataset.timbre;
+      document.querySelectorAll("#timbre button").forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
+      if(timbre==="piano") ensurePiano();
+    });
+  });
+
+  // ---------- playback tempo (playback only) ----------
+  document.querySelectorAll("#tempo-set button").forEach(b=>{
+    b.addEventListener("click",()=>{
+      if(running) return;
+      tempo=b.dataset.tempo;
+      document.querySelectorAll("#tempo-set button").forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
+    });
+  });
+  // playback duration (ms) for a reference tone, honoring tempo; falls back to `def` on Default
+  function playDur(def){
+    const t=TEMPO_PLAY[tempo];
+    return t===null ? def : t;
+  }
+
+  // ---------- singing time per tone ----------
+  document.querySelectorAll("#sing-time button").forEach(b=>{
+    b.addEventListener("click",()=>{
+      if(running || gradeMode==="follow") return;
+      singTimeMode = b.dataset.t==="default" ? "default" : parseInt(b.dataset.t,10);
+      document.querySelectorAll("#sing-time button").forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
+    });
+  });
+  function singMsFor(){
+    if(singTimeMode!=="default") return singTimeMode;
+    return seq.length===1 ? 3000 : 2000;   // default adaptive behavior
+  }
+
+  // ---------- grading mode ----------
+  const GRADE_NOTE={
+    clock:"Sing each tone when it's highlighted, on a fixed timer.",
+    follow:"Sing at your own pace — the app follows you. Hold each tone about half a second so it counts."
+  };
+  function applyGradeUI(){
+    // singing-time only matters On the clock; fade + disable it in Follow me
+    $("singtime-group").classList.toggle("disabled", gradeMode==="follow");
+  }
+  document.querySelectorAll("#grade-mode button").forEach(b=>{
+    b.addEventListener("click",()=>{
+      if(running) return;
+      gradeMode=b.dataset.grade;
+      document.querySelectorAll("#grade-mode button").forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
+      $("grade-note").textContent=GRADE_NOTE[gradeMode];
+      applyGradeUI();
+    });
+  });
+
+  // ---------- sequence editing ----------
+  function renderChips(){
+    chipsEl.innerHTML="";
+    if(!seq.length){ const e=document.createElement("span"); e.className="empty-seq"; e.textContent="No tones yet."; chipsEl.appendChild(e); }
+    seq.forEach((n,i)=>{
+      const c=document.createElement("span");
+      c.className="chip"; c.dataset.i=i;
+      c.innerHTML='<span class="idx">'+(i+1)+'</span>'+n;
+      c.title="remove";
+      c.onclick=()=>{ if(running) return; seq.splice(i,1); markManual(); renderChips(); resetFlow(); };
+      chipsEl.appendChild(c);
+    });
+    seqHint.textContent=seq.length>=9?"max (9) reached":seq.length+"/9 tones";
+    updatePlayButtons();
+  }
+  // flag the sequence as manually edited (no longer a pristine generated arpeggio)
+  function markManual(){ seqFromArp=false; const am=document.getElementById("arp-msg"); if(am) am.hidden=true; }
+  $("add-btn").onclick=()=>{ if(running) return; if(seq.length<9){ seq.push(addSel.value); markManual(); renderChips(); resetFlow(); } };
+  $("clear-btn").onclick=()=>{ if(running) return; seq=[]; markManual(); renderChips(); resetFlow(); };
+
+  // ---------- random arpeggio ----------
+  const arpShape=$("arp-shape"), arpCount=$("arp-count"), arpUpdown=$("arp-updown");
+  const arpLo=$("arp-lo"), arpHi=$("arp-hi"), arpMsg=$("arp-msg");
+  // count selector: 2..9 distinct tones
+  for(let n=2;n<=9;n++){ const o=document.createElement("option"); o.value=n; o.textContent=n; if(n===3)o.selected=true; arpCount.appendChild(o); }
+  // range dropdowns across the full note set
+  ALL_NOTES.forEach(nm=>{
+    const a=document.createElement("option"); a.textContent=nm; if(nm==="C4")a.selected=true; arpLo.appendChild(a);
+    const b=document.createElement("option"); b.textContent=nm; if(nm==="C5")b.selected=true; arpHi.appendChild(b);
+  });
+  $("arp-gen").onclick=()=>{
+    if(running) return;
+    arpMsg.hidden=true;
+    // confirm before overwriting manually-entered tones (skip if list is empty or was itself generated)
+    const hasManual = seq.length>0 && !seqFromArp;
+    if(hasManual){
+      const ok=window.confirm("Replace your current tones with a generated arpeggio?");
+      if(!ok) return;
+    }
+    let lo=noteToMidi(arpLo.value), hi=noteToMidi(arpHi.value);
+    if(lo>hi){ const t=lo; lo=hi; hi=t; }         // tolerate reversed range
+    const count=parseInt(arpCount.value,10);
+    const updown=arpUpdown.checked;
+    const result=buildArpeggio(arpShape.value, count, lo, hi, updown);
+    if(!result){
+      arpMsg.hidden=false;
+      arpMsg.style.color="var(--bad)";
+      arpMsg.textContent="That range is too small for "+count+" tones of a "+arpShape.value.toLowerCase()+". Widen the range or pick fewer tones.";
+      return;
+    }
+    // played length may exceed 9 with ascending+descending — guard the cap
+    if(result.length>9){
+      arpMsg.hidden=false;
+      arpMsg.style.color="var(--bad)";
+      arpMsg.textContent="With ascending + descending, "+count+" tones would play "+result.length+" — over the limit of 9. Pick fewer distinct tones.";
+      return;
+    }
+    seq=result; seqFromArp=true;
+    renderChips(); resetFlow();
+    arpMsg.hidden=false; arpMsg.style.color="var(--ok)";
+    arpMsg.textContent="Generated: "+result.join(" – ");
+  };
+
+  function chipPlaying(i,on){ const c=chipsEl.querySelector('.chip[data-i="'+i+'"]'); if(c) c.classList.toggle("playing",on); }
+  function clearChipHighlights(){ chipsEl.querySelectorAll(".chip.playing").forEach(c=>c.classList.remove("playing")); }
+
+  // enable/disable the two Play buttons by how many tones are selected
+  function updatePlayButtons(){
+    const n=seq.length;
+    playToneBtn.disabled = running || n<1;
+    playPhraseBtn.disabled = running || n<2;
+    // dim the phrase button when it doesn't apply (single tone)
+    playPhraseBtn.style.opacity = n<2 ? "0.45" : "";
+  }
+  // single-tone sequences always grade On the clock (segmentation needs a phrase)
+  function effectiveGrade(){ return seq.length===1 ? "clock" : gradeMode; }
+
+  // ---------- info stage helpers ----------
+  function stage(status,{cls="muted",sub="",showWave=false}={}){
+    stageStatus.textContent=status;
+    stageStatus.className="stage-status "+cls;
+    stageSub.textContent=sub;
+    wave.classList.toggle("on",showWave);
+  }
+  function hideDots(){ singDots.classList.remove("on"); clearDotTimers(); singDots.innerHTML=""; }
+  // Dot timeline: the final FINE_MS of the window is shown as 0.5s "fine" dots;
+  // everything before that is coarser 1s dots. Keeps the count sane for long phrases
+  // while giving a clear "closing in" feel near the end.
+  let dotTimers=[];
+  const COARSE_MS=1000, FINE_MS=500, FINE_TAIL=5000;
+  function runDots(totalMs){
+    clearDotTimers();
+    singDots.innerHTML="";
+    // build the list of dot boundary times (ms from start at which each dot disappears)
+    const fineMs=Math.min(FINE_TAIL,totalMs);
+    const coarseMs=totalMs-fineMs;
+    const times=[];
+    // coarse zone: 1s dots
+    let t=0;
+    while(t+COARSE_MS<=coarseMs+1){ t+=COARSE_MS; times.push(t); }
+    // if a remainder of coarse time is left (not a full second), fold it into first fine step
+    const coarseEnd=t;
+    // fine zone: 0.5s dots covering the remainder up to totalMs
+    let f=coarseEnd;
+    while(f+FINE_MS<=totalMs+1){ f+=FINE_MS; times.push(f); }
+    if(times.length===0){ times.push(totalMs); }
+    // ensure the last dot lands exactly at the end
+    times[times.length-1]=totalMs;
+
+    const dots=times.map((_,i)=>{
+      const s=document.createElement("span");
+      // mark fine-zone dots slightly smaller for a subtle visual transition
+      if(times[i] > coarseEnd + 1) s.classList.add("fine");
+      singDots.appendChild(s); return s;
+    });
+    singDots.classList.add("on");
+    dots.forEach((d,i)=>{
+      const tt=setTimeout(()=>d.classList.add("gone"), Math.round(times[i]));
+      dotTimers.push(tt);
+    });
+  }
+  function clearDotTimers(){ dotTimers.forEach(clearTimeout); dotTimers=[]; }
+
+  function resetFlow(){
+    stepIdx=0; stepCaps=[];
+    playToneBtn.textContent="▶ Play a tone";
+    playPhraseBtn.textContent="▶ Play a phrase";
+    if(!seq.length){
+      stage("Add a tone to begin",{cls:"muted",sub:"choose tones in step 1 above"});
+    } else if(seq.length===1){
+      stage("Ready — press Play a tone",{cls:"muted",sub:"one tone selected"});
+    } else {
+      stage("Ready — press Play",{cls:"muted",sub:"play tones one at a time, or the whole phrase"});
+    }
+    results.classList.add("hidden"); resetReadout(); clearChipHighlights();
+    updatePlayButtons();
+  }
+
+  function resetReadout(){ targetOut.textContent="—"; noteOut.textContent="—"; centsOut.textContent="—"; needle.style.opacity="0"; plainLine.classList.add("hidden"); }
+
+  // ================= PIANO (FluidR3 via smplr, network) =================
+  let piano=null, pianoState="idle"; // idle | loading | ready | failed
+  function setPianoStatus(){
+    if(timbre!=="piano"){ pianoStatus.textContent=""; return; }
+    if(pianoState==="loading") pianoStatus.textContent="loading piano…";
+    else if(pianoState==="ready") pianoStatus.textContent="piano ready";
+    else if(pianoState==="failed") pianoStatus.textContent="offline — using synth tone";
+    else pianoStatus.textContent="";
+  }
+  async function ensurePiano(){
+    if(pianoState==="ready"||pianoState==="loading") { setPianoStatus(); return; }
+    pianoState="loading"; setPianoStatus();
+    try{
+      await ensureAudioCtx();
+      const mod=await import("https://esm.sh/smplr@0.16.0");
+      // Prefer the dedicated sampled Steinway (velocity layers); fall back to FluidR3 GM grand.
+      if(mod.SplendidGrandPiano){
+        piano=new mod.SplendidGrandPiano(ac);
+      } else {
+        piano=new mod.Soundfont(ac,{instrument:"acoustic_grand_piano",kit:"FluidR3_GM"});
+      }
+      await piano.load;
+      pianoState="ready";
+    }catch(e){
+      pianoState="failed"; piano=null;
+    }
+    setPianoStatus();
+  }
+
+  // ---------- tone / piano playback ----------
+  function playSynth(freq,dur){
+    return new Promise(res=>{
+      const t=ac.currentTime;
+      const out=ac.createGain(); out.connect(ac.destination);
+      const o=ac.createOscillator();
+      o.type="triangle"; o.frequency.value=freq;
+      out.gain.setValueAtTime(0,t);
+      out.gain.linearRampToValueAtTime(0.28,t+0.02);
+      out.gain.setValueAtTime(0.28,t+dur-0.06);
+      out.gain.linearRampToValueAtTime(0,t+dur);
+      o.connect(out); o.start(t); o.stop(t+dur+0.02);
+      o.onended=res;
+    });
+  }
+  async function playNote(noteName,dur){
+    const freq=noteToFreq(noteName);
+    if(timbre==="piano"){
+      if(pianoState!=="ready") await ensurePiano();
+      if(pianoState==="ready" && piano){
+        try{
+          piano.start({note:noteName,duration:dur});
+          return new Promise(r=>setTimeout(r,dur*1000));
+        }catch(e){ /* fall through to synth */ }
+      }
+      // failed → synth fallback
+      return playSynth(freq,dur);
+    }
+    return playSynth(freq,dur);
+  }
+
+  // ---------- pitch detection ----------
+  function autoCorrelate(b,sr){
+    let n=b.length,rms=0;
+    for(let i=0;i<n;i++) rms+=b[i]*b[i];
+    rms=Math.sqrt(rms/n);
+    if(rms<0.01) return -1;
+    let r1=0,r2=n-1;const th=0.2;
+    for(let i=0;i<n/2;i++){ if(Math.abs(b[i])<th){ r1=i; break; } }
+    for(let i=1;i<n/2;i++){ if(Math.abs(b[n-i])<th){ r2=n-i; break; } }
+    b=b.slice(r1,r2); n=b.length;
+    if(n===0) return -1;
+    const c=new Array(n).fill(0);
+    for(let i=0;i<n;i++) for(let j=0;j<n-i;j++) c[i]+=b[j]*b[j+i];
+    let d=0; while(d<n-1 && c[d]>c[d+1]) d++;
+    let mv=-1,mp=-1;
+    for(let i=d;i<n;i++){ if(c[i]>mv){ mv=c[i]; mp=i; } }
+    let T=mp;
+    if(T>0 && T<n-1){ const x1=c[T-1],x2=c[T],x3=c[T+1],a=(x1+x3-2*x2)/2,bb=(x3-x1)/2; if(a) T-=bb/(2*a); }
+    if(T<=0) return -1;
+    return sr/T;
+  }
+
+  function detectLoop(targetFreq){
+    analyser.getFloatTimeDomainData(buf);
+    const f=autoCorrelate(buf,ac.sampleRate);
+    if(f>0 && f<2000){
+      const nd=freqToNoteData(f);
+      liveNoteData=nd;
+      noteOut.innerHTML=nd.name+' <small>'+(nd.centsFromNearest>=0?"+":"")+nd.centsFromNearest+'¢</small>';
+      if(targetFreq){
+        const c=Math.round(1200*Math.log2(f/targetFreq));
+        liveCents=c;
+        centsOut.innerHTML=(c>0?"+":"")+c+' <small>¢</small>';
+        const cl=Math.max(-50,Math.min(50,c));
+        needle.style.left=(50+cl)+"%"; needle.style.opacity="1";
+        const a=Math.abs(c);
+        const col=a<=15?"var(--good)":a<=35?"var(--ok)":"var(--bad)";
+        needle.style.background=col; needle.style.color=col;
+      }
+    } else { needle.style.opacity="0.25"; }
+    if(listening) raf=requestAnimationFrame(()=>detectLoop(targetFreq));
+  }
+
+  function captureWindow(ms,graceMs){
+    graceMs=graceMs||0;
+    return new Promise(resolve=>{
+      liveCents=null; liveNoteData=null;
+      let best=null; const start=Date.now();
+      const iv=setInterval(()=>{
+        if(Date.now()-start < graceMs) return; // ignore the first moment (breath / scoop into note)
+        if(liveCents!==null){ if(best===null || Math.abs(liveCents)<Math.abs(best.cents)) best={cents:liveCents,note:liveNoteData}; }
+      },70);
+      setTimeout(()=>{ clearInterval(iv); resolve(best); },ms);
+    });
+  }
+
+  // bold "Ready?" beat before recording opens
+  async function readyBeat(ms){
+    stage("Ready?",{cls:"",sub:"take a breath — you'll sing next"});
+    await wait(ms);
+  }
+
+  // ===== FOLLOW-ME PIPELINE =====
+  // Continuously record (pitch, time) samples for the whole window, updating a
+  // simple live meter (no single target), then segment into held notes and align.
+  function recordTake(ms){
+    return new Promise(resolve=>{
+      const samples=[];           // {t, freq}
+      const start=performance.now();
+      const SILENCE_STOP=2000;    // stop early after this much continuous silence
+      let lastVoiced=0, everVoiced=false;
+      function loop(){
+        analyser.getFloatTimeDomainData(buf);
+        const f=autoCorrelate(buf,ac.sampleRate);
+        const t=performance.now()-start;
+        if(f>0 && f<2000){
+          samples.push({t,freq:f});
+          lastVoiced=t; everVoiced=true;
+          const nd=freqToNoteData(f);
+          noteOut.innerHTML=nd.name+' <small>'+(nd.centsFromNearest>=0?"+":"")+nd.centsFromNearest+'¢</small>';
+          const cl=Math.max(-50,Math.min(50,nd.centsFromNearest));
+          needle.style.left=(50+cl)+"%"; needle.style.opacity="1";
+          needle.style.background="var(--accent)"; needle.style.color="var(--accent)";
+        } else {
+          samples.push({t,freq:null});   // silence marker
+          needle.style.opacity="0.25";
+        }
+        // early stop: only after the singer has started and then gone quiet a while
+        const silentEnough = everVoiced && (t-lastVoiced)>=SILENCE_STOP;
+        if(t<ms && listening && !silentEnough) raf=requestAnimationFrame(loop);
+        else resolve(samples);
+      }
+      loop();
+    });
+  }
+
+  // Segment a take into held notes: runs of samples within TOL cents of a running
+  // center, lasting at least MIN_HOLD ms. Scoops, glides and blips are discarded.
+  const SEG_TOL=60;        // cents tolerance to stay "the same note"
+  const MIN_HOLD=500;      // ms a pitch must be held to count (lowered from 1000 for beginners)
+  const HOLD_SLACK=100;    // allow ~0.5s holds that fall just short due to frame timing
+  function segmentTake(samples){
+    const held=[];
+    let run=[];             // current run of voiced samples near one pitch
+    const cents=(a,b)=>1200*Math.log2(a/b);
+    function centerFreq(r){ // median freq of a run
+      const fs=r.map(s=>s.freq).sort((x,y)=>x-y);
+      return fs[Math.floor(fs.length/2)];
+    }
+    function flush(){
+      if(run.length>=2){
+        const dur=run[run.length-1].t-run[0].t;
+        if(dur>=MIN_HOLD-HOLD_SLACK){
+          const cf=centerFreq(run);
+          held.push({freq:cf, start:run[0].t, dur});
+        }
+      }
+      run=[];
+    }
+    for(const s of samples){
+      if(s.freq===null){ flush(); continue; }        // silence breaks a run
+      if(run.length===0){ run=[s]; continue; }
+      const c=centerFreq(run);
+      if(Math.abs(cents(s.freq,c))<=SEG_TOL){ run.push(s); }
+      else { flush(); run=[s]; }                      // pitch jumped → new note
+    }
+    flush();
+    return held;               // ordered list of held notes actually sung
+  }
+
+  // Align sung held-notes to the expected sequence. Count-aware:
+  // if counts match, 1-to-1 in order; otherwise map each expected note to the
+  // nearest-in-order held note (monotonic greedy), leaving unmatched as null.
+  function alignHeld(expected, held){
+    const out=new Array(expected.length).fill(null);
+    if(held.length===0) return out;
+    if(held.length===expected.length){
+      for(let i=0;i<expected.length;i++) out[i]=held[i];
+      return out;
+    }
+    // monotonic greedy: walk both lists, matching in order by best pitch fit
+    let hi=0;
+    for(let i=0;i<expected.length;i++){
+      const tf=noteToFreq(expected[i]);
+      // among remaining held notes, pick the earliest that's a reasonable match,
+      // but don't consume more held notes than remain for the rest of expected
+      const remainExpected=expected.length-i;
+      let bestIdx=-1,bestErr=Infinity;
+      for(let j=hi;j<=held.length-remainExpected;j++){
+        if(j<0) continue;
+        const err=Math.abs(1200*Math.log2(held[j].freq/tf));
+        if(err<bestErr){ bestErr=err; bestIdx=j; }
+      }
+      if(bestIdx>=0){ out[i]=held[bestIdx]; hi=bestIdx+1; }
+    }
+    return out;
+  }
+
+  // convert an aligned held note (or null) into the {cents,note} result shape
+  function heldToCap(targetNote, held){
+    if(!held) return null;
+    const tf=noteToFreq(targetNote);
+    const cents=Math.round(1200*Math.log2(held.freq/tf));
+    return {cents, note:freqToNoteData(held.freq)};
+  }
+  // classify a single-tone follow-me take: returns {cap, reason}
+  // reason: null (ok) · "none" (no signal at all) · "short" (signal but nothing held long enough)
+  function classifyHeld(targetNote, samples, held){
+    const voiced = samples.some(s=>s.freq!==null);
+    if(held && held.length){
+      const tf=noteToFreq(targetNote);
+      let bi=0,berr=Infinity;
+      held.forEach((h,idx)=>{ const e=Math.abs(1200*Math.log2(h.freq/tf)); if(e<berr){berr=e;bi=idx;} });
+      return {cap:heldToCap(targetNote,held[bi]), reason:null};
+    }
+    return {cap:null, reason: voiced ? "short" : "none"};
+  }
+
+  const wait=ms=>new Promise(r=>setTimeout(r,ms));
+
+  async function startMic(){
+    if(ac && analyser) return true;
+    try{
+      if(!ac) ac=new (window.AudioContext||window.webkitAudioContext)();
+      micStream=await navigator.mediaDevices.getUserMedia({audio:true});
+      const src=ac.createMediaStreamSource(micStream);
+      analyser=ac.createAnalyser(); analyser.fftSize=2048; buf=new Float32Array(analyser.fftSize);
+      src.connect(analyser);
+      return true;
+    }catch(e){ return false; }
+  }
+  async function ensureAudioCtx(){
+    if(!ac) ac=new (window.AudioContext||window.webkitAudioContext)();
+    if(ac.state==="suspended") await ac.resume();
+  }
+
+  // ---------- results ----------
+  function addResult(expected,best,reason){
+    const cents=best?best.cents:null;
+    const sang=best?best.note.name+" "+(best.note.centsFromNearest>=0?"+":"")+best.note.centsFromNearest+"¢":"—";
+    let pw;
+    if(cents!==null) pw=plainWords(cents);
+    else if(reason==="short") pw={txt:"tone too short — hold it a bit longer",tone:"bad"};
+    else pw={txt:"no sound detected",tone:"bad"};
+    const cls = cents===null ? "bad" : pw.tone;
+    const cell=document.createElement("div");
+    cell.className="rcell "+cls;
+    cell.innerHTML='<div class="rk">target</div><div class="exp">'+expected+'</div>'+
+      '<div class="rk">you sang</div><div class="you">'+sang+'</div>'+
+      '<div class="dev">'+(cents===null?"—":(cents>0?"+":"")+cents+" ¢")+'</div>'+
+      '<div class="plainmini">'+pw.txt+'</div>';
+    resultsGrid.appendChild(cell);
+  }
+  function showScore(caps){
+    const graded=caps.filter(c=>c);
+    if(!graded.length){ scoreEl.classList.add("hidden"); return; }
+    const hits=graded.filter(c=>Math.abs(c.cents)<=15).length;
+    const avg=Math.round(graded.reduce((s,c)=>s+Math.abs(c.cents),0)/graded.length);
+    scoreEl.classList.remove("hidden");
+    scoreEl.innerHTML='On pitch: <b>'+hits+'/'+seq.length+'</b> · avg deviation <b>'+avg+' ¢</b>';
+  }
+
+  function setBusy(b){
+    running=b;
+    document.querySelectorAll(".tab, .btn, #add-note, #timbre button, #sing-time button, #tempo-set button, #grade-mode button, .arp-box select, .arp-box input").forEach(el=>el.style.pointerEvents=b?"none":"");
+    updatePlayButtons();
+  }
+
+  // capture + show live plain-words feedback after a sing window
+  function commitFeedback(targetNote,best,reason){
+    const tf=noteToFreq(targetNote);
+    targetOut.textContent=targetNote;
+    if(best){
+      const nd=best.note;
+      noteOut.innerHTML=nd.name+' <small>'+(nd.centsFromNearest>=0?"+":"")+nd.centsFromNearest+'¢</small>';
+      centsOut.innerHTML=(best.cents>0?"+":"")+best.cents+' <small>¢</small>';
+      const pw=plainWords(best.cents);
+      plainLine.classList.remove("hidden");
+      plainLine.innerHTML = pw.txt==="on pitch"
+        ? 'You sang <b>'+nd.name+'</b> — <b>on pitch</b>. Nicely done.'
+        : 'You sang <b>'+nd.name+'</b>, which is <b>'+pw.txt+'</b> than <b>'+targetNote+'</b>.';
+    } else {
+      noteOut.textContent="—"; centsOut.textContent="—";
+      plainLine.classList.remove("hidden");
+      plainLine.innerHTML = reason==="short"
+        ? 'That tone was too short to read — try holding it a little longer.'
+        : 'No sound was detected — try singing a bit louder.';
+    }
+  }
+
+  // ================= PLAY: single / step advance =================
+  async function playOne(i){
+    resetReadout();
+    const note=seq[i], tf=noteToFreq(note);
+    targetOut.textContent=note;
+    clearChipHighlights(); chipPlaying(i,true);
+    stage("Listen…",{cls:"",sub: seq.length>1 ? ("Note "+(i+1)+" of "+seq.length+" · "+note) : note, showWave:true});
+    await playNote(note, playDur(timbre==="piano"?2.2:2.0));
+    chipPlaying(i,false);
+    if(!running) return null;
+    wave.classList.remove("on");
+    await readyBeat(2000);            // 2s "Ready?" pause
+    if(!running) return null;
+    const winMs=singMsFor();
+    if(effectiveGrade()==="follow"){
+      // hold-based: only a tone held ~0.5s counts, so a quick sweep won't score
+      const holdWin=Math.max(winMs, MIN_HOLD+600);
+      stage("Sing!",{cls:"",sub:"hold the tone about half a second"});
+      runDots(holdWin);
+      listening=true;
+      const samples=await recordTake(holdWin);
+      listening=false; cancelAnimationFrame(raf); needle.style.opacity="0.25";
+      hideDots(); wave.classList.remove("on");
+      const held=segmentTake(samples);
+      return classifyHeld(note, samples, held);   // {cap, reason}
+    }
+    stage("Sing!",{cls:"",sub:"your turn — hold the note"});
+    runDots(winMs);
+    listening=true; detectLoop(tf);
+    const best=await captureWindow(winMs, 400);  // ignore first 400ms
+    listening=false; cancelAnimationFrame(raf); needle.style.opacity="0.25";
+    hideDots(); wave.classList.remove("on");
+    return {cap:best, reason: best?null:"none"};
+  }
+
+  playToneBtn.onclick=async ()=>{
+    if(running) return;
+    if(!seq.length){ stage("Add at least one tone.",{cls:"warn"}); return; }
+    // step through the tones one at a time
+    setBusy(true);
+    const okMic=await startMic(); await ensureAudioCtx();
+    if(timbre==="piano") await ensurePiano();
+    if(!okMic){ stage("Microphone blocked",{cls:"warn",sub:"allow mic access to continue"}); setBusy(false); return; }
+
+    if(stepIdx===0){ resultsGrid.innerHTML=""; stepCaps=[]; results.classList.remove("hidden"); scoreEl.classList.add("hidden"); }
+
+    const i=stepIdx;
+    const res=await playOne(i);
+    const cap=res?res.cap:null, reason=res?res.reason:"none";
+    stepCaps[i]=cap||null;
+    commitFeedback(seq[i],cap,reason);
+    addResult(seq[i],cap,reason);
+
+    stepIdx++;
+    if(stepIdx>=seq.length){
+      showScore(stepCaps);
+      stage("Complete",{cls:"",sub:"check the summary below"});
+      playToneBtn.textContent="▶ Play a tone again";
+      stepIdx=0;
+    } else {
+      stage("Ready for tone "+(stepIdx+1),{cls:"muted",sub:"press Play next tone"});
+      playToneBtn.textContent="▶ Play next tone";
+    }
+    setBusy(false);
+  };
+
+  playPhraseBtn.onclick=async ()=>{
+    if(running || seq.length<2) return;
+    return runWhole();
+  };
+
+  // ================= WHOLE PHRASE =================
+  async function runWhole(){
+    setBusy(true);
+    const okMic=await startMic(); await ensureAudioCtx();
+    if(timbre==="piano") await ensurePiano();
+    if(!okMic){ stage("Microphone blocked",{cls:"warn",sub:"allow mic access to continue"}); setBusy(false); return; }
+    await playWholeThenRepeat();
+    playPhraseBtn.textContent="▶ Play a phrase again";
+    setBusy(false);
+  }
+
+  async function playWholeThenRepeat(){
+    resultsGrid.innerHTML=""; results.classList.add("hidden"); scoreEl.classList.add("hidden"); resetReadout();
+    stage("Listen to the phrase…",{cls:"",sub:seq.join("  ·  "),showWave:true});
+    targetOut.textContent=seq.join(" ");
+    for(let i=0;i<seq.length && running;i++){
+      clearChipHighlights(); chipPlaying(i,true);
+      await playNote(seq[i], playDur(timbre==="piano"?0.95:0.7));
+      chipPlaying(i,false);
+      await wait(140);
+    }
+    wave.classList.remove("on");
+    if(!running) return;
+    await readyBeat(2000);            // 2s "Ready?" before the continuous repeat
+    if(!running) return;
+    results.classList.remove("hidden");
+
+    if(effectiveGrade()==="follow"){
+      // ---- FOLLOW ME: one roomy window, then segment & align ----
+      // budget per tone from the selector, floored so every note can be held >=1s
+      const budgetPer = singMsFor();
+      const FLOOR_PER = MIN_HOLD + 500;                 // hold + transition room
+      const perNote = Math.max(budgetPer, FLOOR_PER);
+      const totalMs = perNote*seq.length + 500;         // small tail
+      stage("Sing!",{cls:"",sub:"sing the phrase at your pace — hold each tone briefly"});
+      runDots(totalMs);
+      // highlight all chips softly (no per-note timing pressure)
+      clearChipHighlights();
+      targetOut.textContent=seq.join(" ");
+      listening=true;
+      const samples=await recordTake(totalMs);
+      listening=false; cancelAnimationFrame(raf); needle.style.opacity="0.25";
+      hideDots();
+      const held=segmentTake(samples);
+      const aligned=alignHeld(seq, held);
+      const caps=aligned.map((h,i)=>heldToCap(seq[i],h));
+      const voiced = samples.some(s=>s.freq!==null);
+      const missReason = voiced ? "short" : "none";  // unmatched tones: signal existed but too short, or none at all
+      resultsGrid.innerHTML="";
+      caps.forEach((c,i)=>addResult(seq[i],c,c?null:missReason));
+      showScore(caps);
+      // note if the number of held tones didn't match what was expected
+      let extra="";
+      if(held.length!==seq.length){
+        extra=" · detected "+held.length+" held tone"+(held.length===1?"":"s")+" of "+seq.length;
+      }
+      if(caps.length) commitFeedback(seq[seq.length-1],caps[caps.length-1],missReason);
+      stage("Complete",{cls:"",sub:"check the summary below"+extra});
+      return;
+    }
+
+    // ---- ON THE CLOCK: fixed per-tone slots (original behavior) ----
+    // One continuous singing window; per-tone time follows the radio (default: 3s single / 2s each).
+    const perNote = singMsFor();
+    const totalMs = perNote*seq.length;
+    stage("Sing!",{cls:"",sub:"repeat the whole phrase — keep going"});
+    runDots(totalMs);
+
+    listening=true;
+    const caps=new Array(seq.length).fill(null);
+    const graceMs=350;
+    // walk note-by-note in time, but as one flowing stretch (no gaps, no per-note Ready)
+    for(let i=0;i<seq.length && running;i++){
+      const tf=noteToFreq(seq[i]);
+      clearChipHighlights(); chipPlaying(i,true);
+      targetOut.textContent="→ "+seq[i]+"  ("+(i+1)+"/"+seq.length+")";
+      detectLoop(tf);
+      const best=await captureWindow(perNote, i===0?graceMs:0);
+      cancelAnimationFrame(raf);
+      caps[i]=best;
+    }
+    listening=false; clearChipHighlights(); needle.style.opacity="0.25";
+    hideDots();
+    // render all results together after the flowing take
+    resultsGrid.innerHTML="";
+    caps.forEach((c,i)=>addResult(seq[i],c));
+    showScore(caps);
+    if(caps.length) commitFeedback(seq[seq.length-1],caps[caps.length-1]);
+    stage("Complete",{cls:"",sub:"check the summary below"});
+  }
+
+  // ================= FEEDBACK MODAL =================
+  // Email assembled at runtime from char codes + parts so it isn't a plain
+  // readable string in the page source (deters casual scraping; not encryption).
+  function feedbackAddress(){
+    const user=[115,99,104,101,114,98,97,107].map(c=>String.fromCharCode(c)).join(""); // "scherbak"
+    const domainParts=["hotmail","com"];
+    return user+String.fromCharCode(64)+domainParts.join(String.fromCharCode(46));
+  }
+  const fbBackdrop=$("fb-backdrop"),fbThanks=$("fb-thanks");
+  const fbEmail=$("fb-email"),fbMsg=$("fb-msg");
+  const fbActions=document.querySelector(".fb-actions");
+  let fbThanksTimer=null;
+
+  function openFeedback(){
+    fbThanks.hidden=true; fbActions.style.display="";
+    fbBackdrop.hidden=false;
+    setTimeout(()=>fbMsg.focus(),50);
+  }
+  function closeFeedback(){
+    fbBackdrop.hidden=true;
+    clearTimeout(fbThanksTimer);
+  }
+  function sendFeedback(){
+    const msg=fbMsg.value.trim();
+    if(!msg){ fbMsg.focus(); fbMsg.style.borderColor="var(--bad)"; setTimeout(()=>fbMsg.style.borderColor="",1200); return; }
+    const from=fbEmail.value.trim();
+    const subject="Feedback Vocal Pitch Trainer";
+    let body=msg;
+    if(from) body+="\n\n— from: "+from;
+    const href="mailto:"+feedbackAddress()+"?subject="+encodeURIComponent(subject)+"&body="+encodeURIComponent(body);
+    // open the user's own email client
+    window.location.href=href;
+    // show thanks, clear, auto-close
+    fbActions.style.display="none";
+    fbThanks.hidden=false;
+    fbThanksTimer=setTimeout(()=>{
+      closeFeedback();
+      fbMsg.value=""; fbEmail.value="";
+    },1800);
+  }
+
+  $("feedback-open").addEventListener("click",openFeedback);
+  $("fb-close").addEventListener("click",closeFeedback);
+  $("fb-cancel").addEventListener("click",closeFeedback);
+  $("fb-send").addEventListener("click",sendFeedback);
+  fbBackdrop.addEventListener("click",e=>{ if(e.target===fbBackdrop) closeFeedback(); });
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape" && !fbBackdrop.hidden) closeFeedback(); });
+
+  renderChips();
+  resetFlow();
+  applyGradeUI();
+})();
+</script>
+</body>
+</html>
