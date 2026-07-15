@@ -66,17 +66,48 @@ The dot timer adapts automatically to whatever the total window is: the final 5 
 Two ways to grade a sung phrase:
 
 - **On the clock** — the classic mode. Each tone is expected during its highlighted slot on a fixed timer (the "Singing time for each tone" setting). Predictable and good for strict practice.
-- **Follow me** — sing the phrase at your own pace and the app follows you. It records the whole take, finds the tones you actually *held* (a tone must be held about **half a second** to count, so an accidental sweep through the right pitch doesn't score), and matches them in order to the expected sequence. Timing no longer matters — only which tones you held, and in what order.
+- **Follow me** — sing the phrase at your own pace and the app follows you. It records the whole take, finds the tones you actually *held* (a tone must be held for at least **half a second** to count, so an accidental sweep through the right pitch doesn't score), and matches them in order to the expected sequence. Timing no longer matters — only which tones you held, and in what order.
 
 In **Follow me** mode the "Singing time for each tone" selector becomes an overall time *budget* per tone rather than a strict slot, with a floor that always leaves room to hold every tone for a full second. If the app detects a different number of held tones than expected, it tells you (e.g. "detected 4 held tones of 5"), which usually means two tones were slurred together or one wobbled into two.
 
 Follow me is heuristic and works best for clear, deliberate singing with a small gap between tones; very legato phrases or heavy vibrato can confuse the tone-splitting. It's aimed at beginners and amateur singers who want natural practice rather than clock discipline.
 
+## Recording environment
+
+**Quiet room** (default) uses your raw microphone signal, which reads pitch most accurately. **Noisy room** turns on the browser's noise suppression and automatic gain control — it reduces background noise while recording your voice, but can slightly affect pitch accuracy. Switching this re-acquires the microphone, since the setting is applied when the mic starts.
+
+## Mobile notes
+
+The app works on phones, with a few browser-imposed limits worth knowing:
+
+- **The microphone requires https.** Opening `index.html` from local storage on a phone will not work — use the GitHub Pages URL. The app now says so explicitly if it detects an insecure context.
+- **On iOS every browser is Safari underneath**, so Safari's rules apply everywhere. Audio only starts from a tap (the Play buttons handle this), and the physical silent switch can mute playback.
+- **Backgrounding the app** stops a recording in progress; the app detects this and aborts cleanly rather than grading noise.
+- Pitch detection is throttled to ~30Hz to keep CPU use reasonable on phones.
+
 ## Sound: tone vs. piano
 
 The **pure tone** is generated with the Web Audio oscillator and works fully offline.
 
-The **piano** uses the [smplr](https://github.com/danigb/smplr) library to load a real sampled grand piano over the network. It's fetched on demand the first time you pick "Piano," then cached by the browser. If you're offline or the samples fail to load, the app automatically falls back to the synthesized tone and tells you so — nothing breaks. Because it loads from a CDN, the piano needs an internet connection on first use; the tone mode never does.
+The **piano** uses real recorded samples, with a three-step fallback so it works in every situation:
+
+1. **Local samples** — if `samples/piano/` is present in the repo, the piano plays from your own copy with no external dependency. Samples are fetched individually as notes are played, not loaded as one package.
+2. **CDN** — if there are no local samples but you're online, it loads a piano via [smplr](https://github.com/danigb/smplr).
+3. **Synth tone** — if neither is available (e.g. `index.html` opened alone, offline), it falls back to the built-in synthesized tone.
+
+### Adding the local piano samples
+
+The app expects **Salamander Grand Piano V3** MP3 samples, velocity layer 8, in `samples/piano/`:
+
+```bash
+npm install @audio-samples/piano-mp3-velocity8
+# copy node_modules/@audio-samples/piano-mp3-velocity8/audio/*.mp3 into samples/piano/
+```
+
+Filenames follow the pattern `C4v8.mp3`, `D#4v8.mp3`, `A2v8.mp3` — note name, then the `v8` velocity suffix. Salamander is sampled in minor thirds (C, D#, F#, A of each octave), and the app pitch-shifts by at most one semitone to fill the gaps, which is inaudible in practice. Only 16 files are needed to cover the app's E2–C6 range.
+
+These samples are third-party content — see [NOTICES.md](NOTICES.md).
+
 
 ## Run locally
 
@@ -111,6 +142,10 @@ GitHub Pages serves over HTTPS, which is required for microphone access — so t
 - Pitch detection uses **autocorrelation**, which is dependency-free and good for clean sustained notes but can wobble on breathy or heavy-vibrato singing. For more robust detection, swap in [pitchy](https://github.com/ianprime0509/pitchy) (McLeod method) or CREPE.
 - Full-sequence mode uses a fixed time window per note rather than detecting note onsets, so sing at a steady pace. Proper onset segmentation (or dynamic time warping against the target) would make it timing-independent.
 - Works in any modern browser. Requires microphone permission.
+
+## Third-party content
+
+The piano samples in `samples/piano/` are **Salamander Grand Piano V3**, recorded by Alexander Holm and packaged as MP3 by darosh (Jan Forst), used under the MIT license. They are not covered by this project's own license — see [NOTICES.md](NOTICES.md) for the full notice and attribution.
 
 ## License
 
