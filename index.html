@@ -571,7 +571,7 @@
   let tempo="default";         // playback tempo (playback only)
   let gradeMode="follow";      // "follow" = segment & align (default) · "clock" = fixed slots
   let room="quiet";            // "quiet" = raw mic (best pitch) · "noisy" = browser noise suppression
-  let ac=null,analyser=null,buf=null,micStream=null,raf=null;
+  let ac=null,analyser=null,buf=null,micStream=null,micSrc=null,raf=null;
   let listening=false,running=false;
   let liveCents=null,liveNoteData=null;
   let stepIdx=0, stepCaps=[];
@@ -691,8 +691,9 @@
     });
   });
   function releaseMic(){
+    try{ if(micSrc) micSrc.disconnect(); }catch(e){}
     try{ if(micStream) micStream.getTracks().forEach(t=>t.stop()); }catch(e){}
-    micStream=null; analyser=null; buf=null;
+    micSrc=null; micStream=null; analyser=null; buf=null;
   }
 
   // ---------- grading mode ----------
@@ -996,6 +997,10 @@
   // play a note from a local sample, pitch-shifted by at most ~1 semitone
   function playLocalSample(bufAudio, semitoneShift, dur){
     return new Promise(res=>{
+      let done=false;
+      const finish=()=>{ if(!done){ done=true; res(); } };
+      const guard=setTimeout(finish, dur*1000+400);
+      try{
       const t=ac.currentTime;
       const src=ac.createBufferSource();
       src.buffer=bufAudio;
@@ -1007,27 +1012,37 @@
       g.gain.linearRampToValueAtTime(0.0001,t+dur);
       src.connect(g).connect(master());
       src.start(t); src.stop(t+dur+0.02);
-      setTimeout(res, dur*1000);
+      src.onended=()=>{ clearTimeout(guard); finish(); };
+      }catch(e){ clearTimeout(guard); finish(); }
     });
   }
 
   // ---------- tone / piano playback ----------
   function playSynth(freq,dur){
     return new Promise(res=>{
-      const t=ac.currentTime;
-      const out=ac.createGain(); out.connect(master());
-      const o=ac.createOscillator();
-      o.type="triangle"; o.frequency.value=freq;
-      out.gain.setValueAtTime(0,t);
-      out.gain.linearRampToValueAtTime(OUT_LEVEL,t+0.02);
-      out.gain.setValueAtTime(OUT_LEVEL,t+dur-0.06);
-      out.gain.linearRampToValueAtTime(0,t+dur);
-      o.connect(out); o.start(t); o.stop(t+dur+0.02);
-      o.onended=res;
+      let done=false;
+      const finish=()=>{ if(!done){ done=true; res(); } };
+      // iOS can suspend/interrupt the context, in which case onended never fires and
+      // the whole flow would hang. Always race it against a wall-clock timer.
+      const guard=setTimeout(finish, dur*1000+400);
+      try{
+        const t=ac.currentTime;
+        const out=ac.createGain(); out.connect(master());
+        const o=ac.createOscillator();
+        o.type="triangle"; o.frequency.value=freq;
+        out.gain.setValueAtTime(0,t);
+        out.gain.linearRampToValueAtTime(OUT_LEVEL,t+0.02);
+        out.gain.setValueAtTime(OUT_LEVEL,t+Math.max(0.03,dur-0.06));
+        out.gain.linearRampToValueAtTime(0,t+dur);
+        o.connect(out); o.start(t); o.stop(t+dur+0.02);
+        o.onended=()=>{ clearTimeout(guard); finish(); };
+      }catch(e){ clearTimeout(guard); finish(); }
     });
   }
   async function playNote(noteName,dur){
     const freq=noteToFreq(noteName);
+    // iOS suspends the context on interruptions/route changes — resume before every tone
+    await ensureAudioCtx();
     if(timbre!=="piano") return playSynth(freq,dur);
     if(pianoState!=="ready") await ensurePiano();
     if(pianoState==="ready"){
@@ -1073,6 +1088,7 @@
   const DETECT_MS=33;
   let lastDetect=0;
   function detectLoop(targetFreq){
+    if(!analyser||!buf) return;      // mic released mid-loop
     const now=performance.now();
     if(now-lastDetect>=DETECT_MS){
       lastDetect=now;
@@ -1128,7 +1144,10 @@
       const SILENCE_STOP=2000;    // stop early after this much continuous silence
       let aborted=false;
       let lastVoiced=0, everVoiced=false, lastRun=0;
+      // hard stop: even if rAF stalls or the context dies, never hang the flow
+      const hardStop=setTimeout(()=>{ if(listening){ listening=false; } resolve(samples); }, ms+1500);
       function loop(){
+        if(!analyser||!buf){ clearTimeout(hardStop); resolve(samples); return; }   // mic went away
         const t=performance.now()-start;
         // abort cleanly if the page is backgrounded (rAF throttles and data goes junk)
         if(document.hidden){ aborted=true; resolve(samples); return; }
@@ -1153,7 +1172,7 @@
         // early stop: only after the singer has started and then gone quiet a while
         const silentEnough = everVoiced && (t-lastVoiced)>=SILENCE_STOP;
         if(t<ms && listening && !silentEnough) raf=requestAnimationFrame(loop);
-        else resolve(samples);
+        else { clearTimeout(hardStop); resolve(samples); }
       }
       loop();
     });
@@ -1246,7 +1265,9 @@
   // why the mic failed, for a useful message
   let micError="";
   async function startMic(){
-    if(ac && analyser) return true;
+    // Even if we already have an analyser, the context may have been suspended by
+    // iOS (interruption / audio-route change). Resume it or the meter reads silence.
+    if(ac && analyser){ await ensureAudioCtx(); return true; }
     micError="";
     // mic needs a secure context — file:// and plain http are blocked by browsers
     if(!window.isSecureContext && location.protocol!=="http:"){
@@ -1270,11 +1291,14 @@
         // some browsers reject the constraint object — fall back to plain audio
         micStream=await navigator.mediaDevices.getUserMedia({audio:true});
       }
+      // make sure the context is actually running before we wire the mic in
+      await ensureAudioCtx();
       const src=ac.createMediaStreamSource(micStream);
       analyser=ac.createAnalyser(); analyser.fftSize=2048; buf=new Float32Array(analyser.fftSize);
       src.connect(analyser);
+      micSrc=src;
       return true;
-    }catch(e){ return false; }
+    }catch(e){ micError="failed"; return false; }
   }
   // human-readable reason the mic isn't available
   function micStatusTitle(){
@@ -1566,6 +1590,16 @@
   $("fb-send").addEventListener("click",sendFeedback);
   fbBackdrop.addEventListener("click",e=>{ if(e.target===fbBackdrop) closeFeedback(); });
   document.addEventListener("keydown",e=>{ if(e.key==="Escape" && !fbBackdrop.hidden) closeFeedback(); });
+
+  // iOS suspends the AudioContext on interruptions (calls, Siri, route changes) and
+  // when the tab is backgrounded. Resume it when the page becomes visible again,
+  // otherwise playback is silent and the meter reads nothing.
+  document.addEventListener("visibilitychange",()=>{
+    if(!document.hidden && ac && ac.state==="suspended"){ ac.resume().catch(()=>{}); }
+  });
+  window.addEventListener("pageshow",()=>{
+    if(ac && ac.state==="suspended") ac.resume().catch(()=>{});
+  });
 
   renderChips();
   resetFlow();
