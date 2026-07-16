@@ -140,6 +140,11 @@
   .seq-row{min-height:44px}
   .drag-hint{font-family:var(--mono);font-size:11px;color:var(--dim);margin:-4px 0 10px}
   .drag-hint.hidden{display:none}
+  .updown-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);cursor:pointer;margin:0 0 12px;user-select:none;flex-wrap:wrap}
+  .updown-row.hidden{display:none}
+  .updown-row.disabled{opacity:0.5;cursor:default}
+  .updown-row input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
+  .updown-note{font-family:var(--mono);font-size:11px;color:var(--dim)}
   .empty-seq{color:var(--dim);font-family:var(--mono);font-size:13px}
 
   .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -210,6 +215,8 @@
   .sing-dots span.gone{opacity:0.12;transform:scale(0.6)}
   .sing-dots span.fine{width:8px;height:8px}
   .sing-dots span.fine.gone{transform:scale(0.55)}
+  .sing-dots span.blink{animation:dotBlink .6s ease-in-out infinite;opacity:1!important;transform:none!important;background:var(--ok)}
+  @keyframes dotBlink{0%,100%{opacity:1}50%{opacity:0.15}}
   @media (prefers-reduced-motion:reduce){
     .wave span{animation:none;height:24px}
     .sing-dots span{transition:none}
@@ -323,6 +330,10 @@
 
     <div class="seq-row" id="seq-chips"></div>
     <p class="drag-hint hidden" id="drag-hint">Drag to reorder · × to remove</p>
+    <label class="updown-row hidden" id="updown-row">
+      <input type="checkbox" id="updown"> Play up and down
+      <span class="updown-note" id="updown-note"></span>
+    </label>
 
     <div class="src-pane" id="pane-manual">
       <div class="controls">
@@ -348,9 +359,6 @@
         <label class="arp-field">
           <span>Distinct tones</span>
           <select id="arp-count"></select>
-        </label>
-        <label class="arp-check">
-          <input type="checkbox" id="arp-updown"> Ascending + descending
         </label>
       </div>
       <div class="arp-controls">
@@ -517,7 +525,7 @@
   };
   // Build `count` distinct ascending tones from a shape, cycling up octaves,
   // rooted so the whole thing fits within [loMidi, hiMidi]. Returns note names or null.
-  function buildArpeggio(shapeName, count, loMidi, hiMidi, updown){
+  function buildArpeggio(shapeName, count, loMidi, hiMidi){
     const shape=ARP_SHAPES[shapeName]||ARP_SHAPES["Major triad"];
     // generate ascending distinct midis from a given root
     function fromRoot(root){
@@ -541,14 +549,8 @@
       if(seq.length===count && seq[seq.length-1]<=hiMidi && seq[0]>=loMidi) candidates.push(seq);
     }
     if(!candidates.length) return null;   // range too small for this count
-    let asc=candidates[Math.floor(Math.random()*candidates.length)];
-    let names=asc.map(midiToName);
-    if(updown && asc.length>1){
-      // mirror back down without repeating the peak: C E G E C
-      const down=asc.slice(0,-1).reverse().map(midiToName);
-      names=names.concat(down);
-    }
-    return names;
+    const asc=candidates[Math.floor(Math.random()*candidates.length)];
+    return asc.map(midiToName);
   }
 
   // playback tone durations (ms) by tempo — playback only
@@ -607,6 +609,30 @@
     const wpart = whole<words.length ? words[whole] : String(whole);
     if(h-whole===0.5) return wpart+" and a half tones";
     return wpart+" tones";
+  }
+
+  // ---------- play up and down ----------
+  // A playback mode: mirrors whatever tones are selected (manual or generated)
+  // without altering them, so the chips always show what you picked.
+  $("updown").addEventListener("change",e=>{
+    if(running){ e.target.checked=upDown; return; }
+    upDown=e.target.checked;
+    updateUpDownRow();
+    resetFlow();
+  });
+  function updateUpDownRow(){
+    const row=$("updown-row"), box=$("updown"), note=$("updown-note");
+    if(!row) return;
+    row.classList.toggle("hidden", seq.length<2);
+    // played length = 2n-1; keep it within the 9-tone limit
+    const played=seq.length*2-1;
+    const tooLong=played>9;
+    box.disabled=tooLong || running;
+    if(tooLong && upDown){ upDown=false; box.checked=false; }
+    row.classList.toggle("disabled",tooLong);
+    if(tooLong) note.textContent="— max 5 tones (would play "+played+")";
+    else if(upDown) note.textContent="— plays "+playSeq().join(" ");
+    else note.textContent="";
   }
 
   // ---------- tone source (Manual / Arpeggio) ----------
@@ -769,6 +795,7 @@
     seqHint.textContent=seq.length>=9?"max (9) reached":seq.length+"/9 tones";
     const dh=document.getElementById("drag-hint");
     if(dh) dh.classList.toggle("hidden", seq.length<2);
+    updateUpDownRow();
     updatePlayButtons();
   }
   // flag the sequence as manually edited (no longer a pristine generated arpeggio)
@@ -777,7 +804,7 @@
   $("clear-btn").onclick=()=>{ if(running) return; seq=[]; markManual(); renderChips(); resetFlow(); };
 
   // ---------- random arpeggio ----------
-  const arpShape=$("arp-shape"), arpCount=$("arp-count"), arpUpdown=$("arp-updown");
+  const arpShape=$("arp-shape"), arpCount=$("arp-count");
   const arpLo=$("arp-lo"), arpHi=$("arp-hi"), arpMsg=$("arp-msg");
   // count selector: 2..9 distinct tones
   for(let n=2;n<=9;n++){ const o=document.createElement("option"); o.value=n; o.textContent=n; if(n===3)o.selected=true; arpCount.appendChild(o); }
@@ -798,19 +825,11 @@
     let lo=noteToMidi(arpLo.value), hi=noteToMidi(arpHi.value);
     if(lo>hi){ const t=lo; lo=hi; hi=t; }         // tolerate reversed range
     const count=parseInt(arpCount.value,10);
-    const updown=arpUpdown.checked;
-    const result=buildArpeggio(arpShape.value, count, lo, hi, updown);
+    const result=buildArpeggio(arpShape.value, count, lo, hi);
     if(!result){
       arpMsg.hidden=false;
       arpMsg.style.color="var(--bad)";
       arpMsg.textContent="That range is too small for "+count+" tones of a "+arpShape.value.toLowerCase()+". Widen the range or pick fewer tones.";
-      return;
-    }
-    // played length may exceed 9 with ascending+descending — guard the cap
-    if(result.length>9){
-      arpMsg.hidden=false;
-      arpMsg.style.color="var(--bad)";
-      arpMsg.textContent="With ascending + descending, "+count+" tones would play "+result.length+" — over the limit of 9. Pick fewer distinct tones.";
       return;
     }
     seq=result; seqFromArp=true;
@@ -837,6 +856,15 @@
     // dim the phrase button when it doesn't apply (single tone)
     playPhraseBtn.style.opacity = n<2 ? "0.45" : "";
   }
+  // The sequence as actually played/graded. "Play up and down" mirrors on the fly
+  // (C E G -> C E G E C) without touching the stored tones, so the chips always
+  // show what you picked and the toggle stays reversible.
+  let upDown=false;
+  function playSeq(){
+    if(!upDown || seq.length<2) return seq.slice();
+    return seq.concat(seq.slice(0,-1).reverse());
+  }
+
   // single-tone sequences always grade On the clock (segmentation needs a phrase)
   function effectiveGrade(){ return seq.length===1 ? "clock" : gradeMode; }
 
@@ -1127,11 +1155,29 @@
   }
 
   // bold "Ready?" beat before recording opens
-  async function readyBeat(ms){
+  // "Get ready" pause. Runs the three dots, and waits for the mic to actually be
+  // live before letting the caller start recording. If the mic is slow, the last
+  // dot blinks and we hold rather than record into a dead stream.
+  async function readyBeat(ms, micPromise){
     stage("Get ready",{cls:"",sub:"take a breath — you sing when the dots run out"});
-    runDots(ms, 3);          // exactly three dots across the pause
+    runDots(ms, 3);
     await wait(ms);
+    if(!micPromise){ hideDots(); return true; }
+    // mic should be up by now; if not, blink the last dot and keep waiting
+    let ok=await Promise.race([micPromise, wait(0).then(()=>"pending")]);
+    if(ok==="pending"){
+      blinkLastDot(true);
+      stage("Get ready",{cls:"",sub:"starting the microphone…"});
+      ok=await micPromise;
+      blinkLastDot(false);
+    }
     hideDots();
+    return ok===true;
+  }
+  function blinkLastDot(on){
+    const dots=singDots.querySelectorAll("span");
+    const last=dots[dots.length-1];
+    if(last) last.classList.toggle("blink",on);
   }
 
   // ===== FOLLOW-ME PIPELINE =====
@@ -1297,18 +1343,46 @@
       analyser=ac.createAnalyser(); analyser.fftSize=2048; buf=new Float32Array(analyser.fftSize);
       src.connect(analyser);
       micSrc=src;
+      // The stream can exist before the track is actually delivering audio (iOS is
+      // slow to come up after repeated release/acquire). Wait for it to go live.
+      const ok=await micLive(2500);
+      if(!ok){ micError="notlive"; return false; }
       return true;
     }catch(e){ micError="failed"; return false; }
   }
+  // True once the audio track reports "live" AND the analyser sees real samples.
+  function micTrackLive(){
+    if(!micStream) return false;
+    const t=micStream.getAudioTracks()[0];
+    return !!t && t.readyState==="live" && t.enabled && !t.muted;
+  }
+  // Poll until the mic is genuinely delivering audio (or we run out of patience).
+  async function micLive(timeoutMs){
+    const start=performance.now();
+    const probe=new Float32Array(analyser ? analyser.fftSize : 2048);
+    while(performance.now()-start < timeoutMs){
+      if(micTrackLive() && analyser && ac && ac.state==="running"){
+        analyser.getFloatTimeDomainData(probe);
+        // any non-zero sample means the graph is actually flowing
+        for(let i=0;i<probe.length;i+=16){ if(probe[i]!==0) return true; }
+      }
+      await wait(60);
+    }
+    // track live but pure digital silence is still usable (a very quiet room)
+    return micTrackLive();
+  }
+
   // human-readable reason the mic isn't available
   function micStatusTitle(){
     if(micError==="insecure") return "Microphone needs https";
     if(micError==="unsupported") return "Microphone not supported";
+    if(micError==="notlive") return "Microphone didn't start";
     return "Microphone blocked";
   }
   function micStatusSub(){
     if(micError==="insecure") return "open this page over https (e.g. your GitHub Pages link) — browsers block the mic on local files";
     if(micError==="unsupported") return "this browser doesn't provide microphone access";
+    if(micError==="notlive") return "the mic didn't come up in time — press Play to try again";
     return "allow mic access in your browser to continue";
   }
 
@@ -1336,13 +1410,13 @@
       '<div class="plainmini">'+pw.txt+'</div>';
     resultsGrid.appendChild(cell);
   }
-  function showScore(caps){
+  function showScore(caps,total){
     const graded=caps.filter(c=>c);
     if(!graded.length){ scoreEl.classList.add("hidden"); return; }
     const hits=graded.filter(c=>Math.abs(c.cents)<=15).length;
     const avg=Math.round(graded.reduce((s,c)=>s+Math.abs(c.cents),0)/graded.length);
     scoreEl.classList.remove("hidden");
-    scoreEl.innerHTML='On pitch: <b>'+hits+'/'+seq.length+'</b> · avg deviation <b>'+avg+' ¢</b>';
+    scoreEl.innerHTML='On pitch: <b>'+hits+'/'+(total||caps.length)+'</b> · avg deviation <b>'+avg+' ¢</b>';
   }
 
   function setBusy(b){
@@ -1380,11 +1454,10 @@
     chipPlaying(i,false);
     if(!running) return null;
     wave.classList.remove("on");
-    // "Ready?" pause doubles as cover for re-acquiring the mic (no re-prompt once granted)
-    const readyP=readyBeat(2000);
+    // The "Get ready" pause covers re-acquiring the mic (no re-prompt once granted).
+    // readyBeat waits for the mic to actually be live before we start recording.
     const micP=startMic();
-    await readyP;
-    const okMic=await micP;
+    const okMic=await readyBeat(2000, micP);
     if(!running) return null;
     if(!okMic){ stage(micStatusTitle(),{cls:"warn",sub:micStatusSub()}); return null; }
     const winMs=singMsFor();
@@ -1456,78 +1529,75 @@
     setBusy(false);
   }
 
+  // map an index in the played sequence back to the chip it corresponds to
+  function chipIndexFor(playedIdx){
+    if(!upDown || seq.length<2) return playedIdx;
+    return playedIdx < seq.length ? playedIdx : (2*seq.length - 2 - playedIdx);
+  }
+
   async function playWholeThenRepeat(){
+    const pseq=playSeq();                       // what actually gets played/graded
     resultsGrid.innerHTML=""; results.classList.add("hidden"); scoreEl.classList.add("hidden"); resetReadout();
     // release the mic so iOS plays the phrase through the main speaker, not the earpiece
     releaseMic();
-    stage("Listen to the phrase…",{cls:"",sub:seq.join("  ·  "),showWave:true});
-    targetOut.textContent=seq.join(" ");
-    for(let i=0;i<seq.length && running;i++){
-      clearChipHighlights(); chipPlaying(i,true);
-      await playNote(seq[i], playDur(timbre==="piano"?0.95:0.7));
-      chipPlaying(i,false);
+    stage("Listen to the phrase…",{cls:"",sub:pseq.join("  ·  "),showWave:true});
+    for(let i=0;i<pseq.length && running;i++){
+      clearChipHighlights(); chipPlaying(chipIndexFor(i),true);
+      await playNote(pseq[i], playDur(timbre==="piano"?0.95:0.7));
+      chipPlaying(chipIndexFor(i),false);
       await wait(140);
     }
     wave.classList.remove("on");
     if(!running) return;
-    // "Ready?" pause covers re-acquiring the mic
-    const readyP=readyBeat(2000);
+    // "Get ready" pause covers re-acquiring the mic, and waits for it to be live
     const micP=startMic();
-    await readyP;
-    const okMic=await micP;
+    const okMic=await readyBeat(2000, micP);
     if(!running) return;
     if(!okMic){ stage(micStatusTitle(),{cls:"warn",sub:micStatusSub()}); return; }
     results.classList.remove("hidden");
 
     if(effectiveGrade()==="follow"){
       // ---- FOLLOW ME: one roomy window, then segment & align ----
-      // budget per tone from the selector, floored so every note can be held >=1s
       const budgetPer = singMsFor();
       const FLOOR_PER = MIN_HOLD + 500;                 // hold + transition room
       const perNote = Math.max(budgetPer, FLOOR_PER);
-      const totalMs = perNote*seq.length + 500;         // small tail
+      const totalMs = perNote*pseq.length + 500;        // small tail
       stage("Sing!",{cls:"",sub:"sing the phrase at your pace — hold each tone briefly"});
       runDots(totalMs);
-      // highlight all chips softly (no per-note timing pressure)
       clearChipHighlights();
-      targetOut.textContent=seq.join(" ");
       listening=true;
       const samples=await recordTake(totalMs);
       listening=false; cancelAnimationFrame(raf); needle.style.opacity="0.25";
       hideDots(); releaseMic();
       const held=segmentTake(samples);
-      const aligned=alignHeld(seq, held);
-      const caps=aligned.map((h,i)=>heldToCap(seq[i],h));
+      const aligned=alignHeld(pseq, held);
+      const caps=aligned.map((hh,i)=>heldToCap(pseq[i],hh));
       const voiced = samples.some(s=>s.freq!==null);
-      const missReason = voiced ? "short" : "none";  // unmatched tones: signal existed but too short, or none at all
+      const missReason = voiced ? "short" : "none";
       resultsGrid.innerHTML="";
-      caps.forEach((c,i)=>addResult(seq[i],c,c?null:missReason));
-      showScore(caps);
-      // note if the number of held tones didn't match what was expected
+      caps.forEach((c,i)=>addResult(pseq[i],c,c?null:missReason));
+      showScore(caps,pseq.length);
       let extra="";
-      if(held.length!==seq.length){
-        extra=" · detected "+held.length+" held tone"+(held.length===1?"":"s")+" of "+seq.length;
+      if(held.length!==pseq.length){
+        extra=" · detected "+held.length+" held tone"+(held.length===1?"":"s")+" of "+pseq.length;
       }
-      if(caps.length) commitFeedback(seq[seq.length-1],caps[caps.length-1],missReason);
+      if(caps.length) commitFeedback(pseq[pseq.length-1],caps[caps.length-1],missReason);
       stage("Complete",{cls:"",sub:"see results below"+extra});
       return;
     }
 
-    // ---- ON THE CLOCK: fixed per-tone slots (original behavior) ----
-    // One continuous singing window; per-tone time follows the radio (default: 3s single / 2s each).
+    // ---- ON THE CLOCK: fixed per-tone slots ----
     const perNote = singMsFor();
-    const totalMs = perNote*seq.length;
+    const totalMs = perNote*pseq.length;
     stage("Sing!",{cls:"",sub:"repeat the whole phrase — keep going"});
     runDots(totalMs);
 
     listening=true;
-    const caps=new Array(seq.length).fill(null);
+    const caps=new Array(pseq.length).fill(null);
     const graceMs=350;
-    // walk note-by-note in time, but as one flowing stretch (no gaps, no per-note Ready)
-    for(let i=0;i<seq.length && running;i++){
-      const tf=noteToFreq(seq[i]);
-      clearChipHighlights(); chipPlaying(i,true);
-      targetOut.textContent="→ "+seq[i]+"  ("+(i+1)+"/"+seq.length+")";
+    for(let i=0;i<pseq.length && running;i++){
+      const tf=noteToFreq(pseq[i]);
+      clearChipHighlights(); chipPlaying(chipIndexFor(i),true);
       detectLoop(tf);
       const best=await captureWindow(perNote, i===0?graceMs:0);
       cancelAnimationFrame(raf);
@@ -1535,11 +1605,10 @@
     }
     listening=false; clearChipHighlights(); needle.style.opacity="0.25";
     hideDots(); releaseMic();
-    // render all results together after the flowing take
     resultsGrid.innerHTML="";
-    caps.forEach((c,i)=>addResult(seq[i],c));
-    showScore(caps);
-    if(caps.length) commitFeedback(seq[seq.length-1],caps[caps.length-1]);
+    caps.forEach((c,i)=>addResult(pseq[i],c));
+    showScore(caps,pseq.length);
+    if(caps.length) commitFeedback(pseq[pseq.length-1],caps[caps.length-1]);
     stage("Complete",{cls:"",sub:"see results below"});
   }
 
