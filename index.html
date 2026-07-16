@@ -60,6 +60,23 @@
   .voice-tag{font-family:var(--mono);font-size:10px;letter-spacing:0.06em;color:var(--dim);border:1px solid var(--line);border-radius:6px;padding:2px 6px;text-transform:none}
   .help-line{font-size:13px;color:var(--muted);margin-bottom:10px}
   .step-num{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--accent);color:#04120e;font-family:var(--sans);font-size:11px;font-weight:700;margin-right:4px}
+
+  .src-pane.hidden{display:none}
+
+  .settings{margin-bottom:14px}
+  .settings summary{cursor:pointer;list-style:none;font-family:var(--mono);font-size:12px;color:var(--muted);padding:11px 16px;background:var(--panel);border:1px solid var(--line);border-radius:12px;display:flex;align-items:center;gap:10px;user-select:none;flex-wrap:wrap}
+  .settings summary::-webkit-details-marker{display:none}
+  .settings summary .chev{transition:transform .2s;color:var(--dim);font-size:10px}
+  .settings[open] summary .chev{transform:rotate(90deg)}
+  .settings[open] summary{border-bottom-left-radius:0;border-bottom-right-radius:0}
+  .settings-sum{margin-left:auto;color:var(--dim);font-size:11px}
+  .settings[open] .settings-sum{display:none}
+  .settings-body{background:var(--panel);border:1px solid var(--line);border-top:none;border-radius:0 0 12px 12px;padding:8px 16px 16px}
+  .set-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid var(--line)}
+  .set-row:last-child{border-bottom:none}
+  .set-row .timing-cap{min-width:110px;margin:0}
+  .set-note{font-size:12px;color:var(--dim);flex:1;min-width:140px}
+  .set-row.disabled{opacity:0.4;pointer-events:none}
   .step-comment{font-size:13px;color:var(--muted);margin:-4px 0 12px}
   .play-help{font-size:12px;color:var(--dim);margin:12px 2px 4px;line-height:1.6}
   .play-help b{color:var(--muted);font-weight:600}
@@ -91,10 +108,38 @@
   .timing-group.disabled{opacity:0.4;pointer-events:none;filter:grayscale(0.5)}
 
   .seq-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;min-height:34px;margin-bottom:14px}
-  .chip{background:var(--panel-2);border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:13px;font-weight:500;padding:6px 10px;border-radius:8px;cursor:pointer;transition:border-color .15s;display:inline-flex;align-items:center;gap:6px}
-  .chip:hover{border-color:var(--bad)}
-  .chip .idx{color:var(--dim);font-size:11px}
-  .chip.playing{border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  /* The tones are the subject of the whole exercise — they should read as the
+     most important thing on the page, not dissolve into the surrounding chrome. */
+  .chip{background:var(--bg-accent,rgba(78,201,176,0.10));border:1px solid rgba(78,201,176,0.35);color:var(--accent);
+        font-family:var(--mono);font-size:18px;font-weight:700;letter-spacing:-0.01em;
+        padding:9px 14px;border-radius:10px;cursor:pointer;
+        transition:border-color .15s,background .15s,transform .15s;
+        display:inline-flex;align-items:center;gap:8px}
+  .chip:hover{border-color:rgba(78,201,176,0.7);background:rgba(78,201,176,0.16)}
+  .chip .idx{color:var(--dim);font-size:11px;font-weight:500}
+  .chip .nm{pointer-events:none}
+  .chip{cursor:grab}
+  .chip:active{cursor:grabbing}
+
+  /* explicit remove button — dragging never deletes by accident */
+  .chip-x{background:none;border:none;color:var(--dim);font-family:var(--sans);font-size:15px;line-height:1;
+          padding:2px 1px;margin-left:2px;cursor:pointer;border-radius:4px;transition:color .12s,background .12s}
+  .chip-x:hover{color:var(--bad);background:rgba(224,104,74,0.15)}
+
+  /* drag states */
+  .chip.dragging{opacity:0.45}
+  .chip.drop-before{box-shadow:-3px 0 0 0 var(--accent)}
+  .chip.drop-after{box-shadow:3px 0 0 0 var(--accent)}
+  .chip.playing{border-color:var(--accent);background:rgba(78,201,176,0.22);box-shadow:0 0 0 2px var(--accent),0 0 18px rgba(78,201,176,0.35);transform:translateY(-1px)}
+  .chip.pulse{animation:chipPulse .7s ease-out}
+  @keyframes chipPulse{
+    0%{transform:scale(1);box-shadow:0 0 0 0 rgba(78,201,176,0.55)}
+    35%{transform:scale(1.07);box-shadow:0 0 0 7px rgba(78,201,176,0)}
+    100%{transform:scale(1);box-shadow:0 0 0 0 rgba(78,201,176,0)}
+  }
+  .seq-row{min-height:44px}
+  .drag-hint{font-family:var(--mono);font-size:11px;color:var(--dim);margin:-4px 0 10px}
+  .drag-hint.hidden{display:none}
   .empty-seq{color:var(--dim);font-family:var(--mono);font-size:13px}
 
   .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -188,16 +233,16 @@
   .meter .band{position:absolute;top:14px;bottom:26px;left:calc(50% - 15%);width:30%;background:rgba(78,201,176,0.07);border-left:1px dashed rgba(78,201,176,0.25);border-right:1px dashed rgba(78,201,176,0.25)}
 
   .results{margin-top:14px}
-  .results-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:10px}
-  .rcell{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:12px 8px;text-align:center}
+  .results-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+  .rcell{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:16px 12px;text-align:center}
   .rcell.good{border-color:var(--good)}.rcell.ok{border-color:var(--ok)}.rcell.bad{border-color:var(--bad)}
-  .rcell .rk{font-family:var(--mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--dim)}
-  .rcell .exp{font-family:var(--mono);font-size:18px;font-weight:600;margin:2px 0 8px}
-  .rcell .you{font-family:var(--mono);font-size:18px;font-weight:600;margin:2px 0}
+  .rcell .rk{font-family:var(--mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--dim)}
+  .rcell .exp{font-family:var(--mono);font-size:26px;font-weight:700;margin:2px 0 12px;letter-spacing:-0.01em}
+  .rcell .you{font-family:var(--mono);font-size:26px;font-weight:700;margin:2px 0;letter-spacing:-0.01em}
   .rcell.good .you{color:var(--good)}.rcell.ok .you{color:var(--ok)}.rcell.bad .you{color:var(--bad)}
   .rcell .dev{font-family:var(--mono);font-size:12px;margin-top:2px}
-  .rcell .plainmini{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.3}
-  .rcell.good .dev{color:var(--good)}.rcell.ok .dev{color:var(--ok)}.rcell.bad .dev{color:var(--bad)}
+  .rcell .plainmini{font-size:14px;font-weight:500;color:var(--ink);margin-top:10px;line-height:1.35}
+  .rcell.good .plainmini{color:var(--good)}.rcell.ok .plainmini{color:var(--ok)}.rcell.bad .plainmini{color:var(--bad)}
   .score{font-family:var(--mono);font-size:13px;color:var(--muted);margin-bottom:12px}
   .score b{color:var(--accent);font-weight:600}
 
@@ -267,27 +312,27 @@
 
   <section class="panel">
     <div class="panel-label">
-      <span class="step-num">1</span> Selected tones
-      <span class="voice-tag" id="voice-tag">bass → soprano · E2–C6</span>
+      Tones
+      <div class="radioset" id="source-set" role="group" aria-label="Tone source">
+        <button data-src="manual" class="active">Manual</button>
+        <button data-src="arp">Arpeggio</button>
+      </div>
+      <span class="voice-tag" id="voice-tag">E2–C6</span>
+      <span class="hint" id="seq-hint">0/9</span>
     </div>
-    <p class="step-comment">Choose which tones you'll practice.</p>
-    <p class="help-line">Fill the phrase one of two ways — add tones yourself, <em>or</em> generate a random arpeggio. Either choice replaces what's there.</p>
 
-    <div class="method">
-      <div class="method-tag"><span class="method-letter">A</span> Add tones yourself</div>
-      <div class="seq-row" id="seq-chips"></div>
+    <div class="seq-row" id="seq-chips"></div>
+    <p class="drag-hint hidden" id="drag-hint">Drag to reorder · × to remove</p>
+
+    <div class="src-pane" id="pane-manual">
       <div class="controls">
         <select id="add-note" aria-label="Note to add"></select>
         <button class="btn" id="add-btn">+ Add</button>
         <button class="btn ghost" id="clear-btn">Clear</button>
-        <span class="hint" id="seq-hint">1/9 tones</span>
       </div>
     </div>
 
-    <div class="or-divider"><span>or</span></div>
-
-    <div class="arp-box">
-      <div class="arp-title"><span class="method-letter">B</span> Random arpeggio <span class="arp-gloss">(the notes of a chord, played in sequence)</span></div>
+    <div class="src-pane hidden" id="pane-arp">
       <div class="arp-controls">
         <label class="arp-field">
           <span>Chord</span>
@@ -310,7 +355,7 @@
       </div>
       <div class="arp-controls">
         <div class="arp-field-group">
-          <span class="arp-range-label">Select range for the random sequence</span>
+          <span class="arp-range-label">Range</span>
           <div class="arp-range">
             <select id="arp-lo" aria-label="Lowest note"></select>
             <span class="arp-dash">to</span>
@@ -323,70 +368,64 @@
     </div>
   </section>
 
-  <section class="panel">
-    <div class="panel-label">
-      <span class="step-num">2</span> Sound &amp; playback
+  <details class="settings" id="settings">
+    <summary><span class="chev">▶</span> Settings <span class="settings-sum" id="settings-sum">pure tone · default tempo · follow me</span></summary>
+    <div class="settings-body">
+
+    <div class="set-row">
+      <div class="timing-cap">Sound</div>
       <div class="timbre" id="timbre" role="group" aria-label="Playback sound">
         <button data-timbre="tone" class="active">Pure tone</button>
         <button data-timbre="piano">Piano</button>
       </div>
       <span class="piano-status" id="piano-status"></span>
     </div>
-    <p class="step-comment">Pick how the reference tones sound and how fast they play.</p>
 
-    <div class="timing-row">
-      <div class="timing-group">
-        <div class="timing-cap">Playback tempo</div>
-        <div class="radioset" id="tempo-set" role="group" aria-label="Playback tempo">
-          <button data-tempo="default" class="active">Default</button>
-          <button data-tempo="slow">Slow</button>
-          <button data-tempo="medium">Medium</button>
-          <button data-tempo="high">High</button>
-        </div>
-        <div class="timing-note" id="tempo-note">How fast the app plays the tones to you. Useful for longer sequences.</div>
+    <div class="set-row">
+      <div class="timing-cap">Playback tempo</div>
+      <div class="radioset" id="tempo-set" role="group" aria-label="Playback tempo">
+        <button data-tempo="default" class="active">Default</button>
+        <button data-tempo="slow">Slow</button>
+        <button data-tempo="medium">Medium</button>
+        <button data-tempo="high">High</button>
       </div>
+      <span class="set-note">how fast tones are played to you</span>
     </div>
-  </section>
+
+    <div class="set-row">
+      <div class="timing-cap">Grading</div>
+      <div class="radioset" id="grade-mode" role="group" aria-label="Grading mode">
+        <button data-grade="follow" class="active">Follow me</button>
+        <button data-grade="clock">On the clock</button>
+      </div>
+      <span class="set-note" id="grade-note">sing at your own pace — hold each tone at least half a second</span>
+    </div>
+
+    <div class="set-row" id="singtime-group">
+      <div class="timing-cap">Singing time</div>
+      <div class="radioset" id="sing-time" role="group" aria-label="Singing time per tone">
+        <button data-t="default" class="active">Default</button>
+        <button data-t="1000">1 s</button>
+        <button data-t="2000">2 s</button>
+        <button data-t="3000">3 s</button>
+      </div>
+      <span class="set-note">per tone, On the clock mode</span>
+    </div>
+
+    <div class="set-row">
+      <div class="timing-cap">Microphone</div>
+      <div class="radioset" id="room-set" role="group" aria-label="Recording environment">
+        <button data-room="quiet" class="active">Quiet room</button>
+        <button data-room="noisy">Noisy room</button>
+      </div>
+      <span class="set-note" id="room-note">raw signal — most accurate pitch</span>
+    </div>
+
+    </div>
+  </details>
 
   <section class="panel">
-    <div class="panel-label"><span class="step-num">3</span> Grading</div>
-    <p class="step-comment">Choose how your singing is judged against the tones.</p>
-
-    <div class="timing-row">
-      <div class="timing-group">
-        <div class="timing-cap">How singing is graded</div>
-        <div class="radioset" id="grade-mode" role="group" aria-label="Grading mode">
-          <button data-grade="follow" class="active">Follow me</button>
-          <button data-grade="clock">On the clock</button>
-        </div>
-        <div class="timing-note" id="grade-note">Sing at your own pace — the app follows you. Hold each tone for at least half a second so it counts.</div>
-      </div>
-      <div class="timing-group" id="singtime-group">
-        <div class="timing-cap">Singing time for each tone <span class="cap-mode">(On the clock mode)</span></div>
-        <div class="radioset" id="sing-time" role="group" aria-label="Singing time per tone">
-          <button data-t="default" class="active">Default</button>
-          <button data-t="1000">1 sec</button>
-          <button data-t="2000">2 sec</button>
-          <button data-t="3000">3 sec</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="timing-row" style="margin-top:-4px">
-      <div class="timing-group">
-        <div class="timing-cap">Recording environment</div>
-        <div class="radioset" id="room-set" role="group" aria-label="Recording environment">
-          <button data-room="quiet" class="active">Quiet room</button>
-          <button data-room="noisy">Noisy room</button>
-        </div>
-        <div class="timing-note" id="room-note">Quiet room uses your raw microphone signal, which reads pitch most accurately. Noisy room reduces background noise while recording your voice, but can slightly affect pitch accuracy.</div>
-      </div>
-    </div>
-  </section>
-
-  <section class="panel">
-    <div class="panel-label"><span class="step-num">4</span> Play &amp; sing</div>
-    <p class="step-comment">Hear the tones and sing them back.</p>
+    <div class="panel-label">Play &amp; sing</div>
 
     <div class="stage-row">
       <div class="btn-col">
@@ -404,14 +443,7 @@
         </div>
       </div>
     </div>
-    <p class="play-help" id="play-help"><b>Play a tone</b> — hear each tone on its own, one at a time.  ·  <b>Play a phrase</b> — hear the whole sequence, then sing it back.</p>
 
-    <div class="readout">
-      <div class="cell"><div class="k">Target</div><div class="v" id="target-out">—</div></div>
-      <div class="cell"><div class="k">You sang</div><div class="v" id="note-out">—</div></div>
-      <div class="cell"><div class="k">Off target</div><div class="v" id="cents-out">—</div></div>
-    </div>
-    <div class="plain hidden" id="plain-line"></div>
 
     <div class="meter" id="meter">
       <div class="band"></div>
@@ -425,7 +457,7 @@
   </section>
 
   <section class="panel results hidden" id="results">
-    <div class="panel-label"><span class="step-num">5</span> Expected vs. sung</div>
+    <div class="panel-label">Results</div>
     <div class="score hidden" id="score"></div>
     <div class="results-grid" id="results-grid"></div>
   </section>
@@ -524,7 +556,10 @@
 
   const $=id=>document.getElementById(id);
   const chipsEl=$("seq-chips");
-  const targetOut=$("target-out"),noteOut=$("note-out"),centsOut=$("cents-out"),plainLine=$("plain-line");
+  // The live readout was removed: the meter is the live indicator, and the Results
+  // card carries the numbers. These detached nodes keep the existing writes harmless.
+  const _sink=()=>document.createElement("div");
+  const targetOut=_sink(),noteOut=_sink(),centsOut=_sink();
   const needle=$("needle"),results=$("results"),resultsGrid=$("results-grid"),scoreEl=$("score");
   const playToneBtn=$("play-tone-btn"),playPhraseBtn=$("play-phrase-btn"),seqHint=$("seq-hint"),addSel=$("add-note");
   const stageStatus=$("stage-status"),stageSub=$("stage-sub"),wave=$("wave"),singDots=$("sing-dots");
@@ -574,6 +609,30 @@
     return wpart+" tones";
   }
 
+  // ---------- tone source (Manual / Arpeggio) ----------
+  document.querySelectorAll("#source-set button").forEach(b=>{
+    b.addEventListener("click",()=>{
+      if(running) return;
+      const src=b.dataset.src;
+      document.querySelectorAll("#source-set button").forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
+      $("pane-manual").classList.toggle("hidden", src!=="manual");
+      $("pane-arp").classList.toggle("hidden", src!=="arp");
+    });
+  });
+
+  // one-line summary of current settings, shown on the collapsed Settings row
+  function updateSettingsSummary(){
+    const el=$("settings-sum"); if(!el) return;
+    const bits=[
+      timbre==="piano" ? "piano" : "pure tone",
+      tempo==="default" ? "default tempo" : tempo+" tempo",
+      gradeMode==="follow" ? "follow me" : "on the clock"
+    ];
+    if(room==="noisy") bits.push("noisy room");
+    el.textContent=bits.join(" · ");
+  }
+
   // ---------- timbre ----------
   document.querySelectorAll("#timbre button").forEach(b=>{
     b.addEventListener("click",async ()=>{
@@ -581,6 +640,7 @@
       document.querySelectorAll("#timbre button").forEach(x=>x.classList.remove("active"));
       b.classList.add("active");
       if(timbre==="piano") ensurePiano();
+      updateSettingsSummary();
     });
   });
 
@@ -591,6 +651,7 @@
       tempo=b.dataset.tempo;
       document.querySelectorAll("#tempo-set button").forEach(x=>x.classList.remove("active"));
       b.classList.add("active");
+      updateSettingsSummary();
     });
   });
   // playback duration (ms) for a reference tone, honoring tempo; falls back to `def` on Default
@@ -622,6 +683,8 @@
       room=next;
       document.querySelectorAll("#room-set button").forEach(x=>x.classList.remove("active"));
       b.classList.add("active");
+      $("room-note").textContent = room==="noisy" ? "reduces background noise; may affect pitch accuracy" : "raw signal — most accurate pitch";
+      updateSettingsSummary();
       // constraints are fixed at getUserMedia time — drop the stream so the next
       // run re-acquires the mic with the new settings
       releaseMic();
@@ -634,8 +697,8 @@
 
   // ---------- grading mode ----------
   const GRADE_NOTE={
-    clock:"Sing each tone when it's highlighted, on a fixed timer.",
-    follow:"Sing at your own pace — the app follows you. Hold each tone for at least half a second so it counts."
+    clock:"sing each tone when it's highlighted, on a fixed timer",
+    follow:"sing at your own pace — hold each tone at least half a second"
   };
   function applyGradeUI(){
     // singing-time only matters On the clock; fade + disable it in Follow me
@@ -648,23 +711,63 @@
       document.querySelectorAll("#grade-mode button").forEach(x=>x.classList.remove("active"));
       b.classList.add("active");
       $("grade-note").textContent=GRADE_NOTE[gradeMode];
-      applyGradeUI();
+      applyGradeUI(); updateSettingsSummary();
     });
   });
 
   // ---------- sequence editing ----------
+  let dragFrom=null;
   function renderChips(){
     chipsEl.innerHTML="";
     if(!seq.length){ const e=document.createElement("span"); e.className="empty-seq"; e.textContent="No tones yet."; chipsEl.appendChild(e); }
     seq.forEach((n,i)=>{
       const c=document.createElement("span");
       c.className="chip"; c.dataset.i=i;
-      c.innerHTML='<span class="idx">'+(i+1)+'</span>'+n;
-      c.title="remove";
-      c.onclick=()=>{ if(running) return; seq.splice(i,1); markManual(); renderChips(); resetFlow(); };
+      c.draggable=true;
+      c.title="drag to reorder";
+      c.innerHTML='<span class="idx">'+(i+1)+'</span><span class="nm">'+n+'</span>'+
+                  '<button class="chip-x" title="remove" aria-label="Remove '+n+'">×</button>';
+      // remove (explicit button, so dragging never deletes by accident)
+      c.querySelector(".chip-x").addEventListener("click",ev=>{
+        ev.stopPropagation();
+        if(running) return;
+        seq.splice(i,1); markManual(); renderChips(); resetFlow();
+      });
+      // drag to reorder
+      c.addEventListener("dragstart",ev=>{
+        if(running){ ev.preventDefault(); return; }
+        dragFrom=i; c.classList.add("dragging");
+        ev.dataTransfer.effectAllowed="move";
+        try{ ev.dataTransfer.setData("text/plain",String(i)); }catch(e){}
+      });
+      c.addEventListener("dragend",()=>{
+        dragFrom=null;
+        chipsEl.querySelectorAll(".chip").forEach(x=>x.classList.remove("dragging","drop-before","drop-after"));
+      });
+      c.addEventListener("dragover",ev=>{
+        if(dragFrom===null || dragFrom===i) return;
+        ev.preventDefault(); ev.dataTransfer.dropEffect="move";
+        const r=c.getBoundingClientRect();
+        const after = ev.clientX > r.left + r.width/2;
+        c.classList.toggle("drop-after",after);
+        c.classList.toggle("drop-before",!after);
+      });
+      c.addEventListener("dragleave",()=>c.classList.remove("drop-before","drop-after"));
+      c.addEventListener("drop",ev=>{
+        ev.preventDefault();
+        if(dragFrom===null || dragFrom===i) return;
+        const r=c.getBoundingClientRect();
+        let to = ev.clientX > r.left + r.width/2 ? i+1 : i;
+        const moved=seq.splice(dragFrom,1)[0];
+        if(dragFrom < to) to--;              // account for the removed item
+        seq.splice(to,0,moved);
+        dragFrom=null; markManual(); renderChips(); resetFlow();
+      });
       chipsEl.appendChild(c);
     });
     seqHint.textContent=seq.length>=9?"max (9) reached":seq.length+"/9 tones";
+    const dh=document.getElementById("drag-hint");
+    if(dh) dh.classList.toggle("hidden", seq.length<2);
     updatePlayButtons();
   }
   // flag the sequence as manually edited (no longer a pristine generated arpeggio)
@@ -711,11 +814,18 @@
     }
     seq=result; seqFromArp=true;
     renderChips(); resetFlow();
-    arpMsg.hidden=false; arpMsg.style.color="var(--ok)";
-    arpMsg.textContent="Generated: "+result.join(" – ");
+    pulseChips();          // brief flash so it's clear something was generated
+    arpMsg.hidden=true;    // the chips are the confirmation — no need to repeat the notes
   };
 
   function chipPlaying(i,on){ const c=chipsEl.querySelector('.chip[data-i="'+i+'"]'); if(c) c.classList.toggle("playing",on); }
+  // brief flash on the whole row — confirms a generate happened without repeating the notes
+  function pulseChips(){
+    chipsEl.querySelectorAll(".chip").forEach(c=>{
+      c.classList.remove("pulse"); void c.offsetWidth; c.classList.add("pulse");
+      setTimeout(()=>c.classList.remove("pulse"),700);
+    });
+  }
   function clearChipHighlights(){ chipsEl.querySelectorAll(".chip.playing").forEach(c=>c.classList.remove("playing")); }
 
   // enable/disable the two Play buttons by how many tones are selected
@@ -742,29 +852,30 @@
   // while giving a clear "closing in" feel near the end.
   let dotTimers=[];
   const COARSE_MS=1000, FINE_MS=500, FINE_TAIL=5000;
-  function runDots(totalMs){
+  function runDots(totalMs, count){
     clearDotTimers();
     singDots.innerHTML="";
-    // build the list of dot boundary times (ms from start at which each dot disappears)
-    const fineMs=Math.min(FINE_TAIL,totalMs);
-    const coarseMs=totalMs-fineMs;
     const times=[];
-    // coarse zone: 1s dots
-    let t=0;
-    while(t+COARSE_MS<=coarseMs+1){ t+=COARSE_MS; times.push(t); }
-    // if a remainder of coarse time is left (not a full second), fold it into first fine step
-    const coarseEnd=t;
-    // fine zone: 0.5s dots covering the remainder up to totalMs
-    let f=coarseEnd;
-    while(f+FINE_MS<=totalMs+1){ f+=FINE_MS; times.push(f); }
-    if(times.length===0){ times.push(totalMs); }
-    // ensure the last dot lands exactly at the end
-    times[times.length-1]=totalMs;
+    let coarseEnd=0;
+    if(count){
+      // explicit count: spread evenly across the window (used by "Get ready")
+      for(let i=1;i<=count;i++) times.push(Math.round(totalMs*i/count));
+    } else {
+      // scaled timeline: final FINE_TAIL shown as 0.5s dots, everything before as 1s dots
+      const fineMs=Math.min(FINE_TAIL,totalMs);
+      const coarseMs=totalMs-fineMs;
+      let t=0;
+      while(t+COARSE_MS<=coarseMs+1){ t+=COARSE_MS; times.push(t); }
+      coarseEnd=t;
+      let f=coarseEnd;
+      while(f+FINE_MS<=totalMs+1){ f+=FINE_MS; times.push(f); }
+      if(times.length===0) times.push(totalMs);
+      times[times.length-1]=totalMs;   // last dot lands exactly at the end
+    }
 
     const dots=times.map((_,i)=>{
       const s=document.createElement("span");
-      // mark fine-zone dots slightly smaller for a subtle visual transition
-      if(times[i] > coarseEnd + 1) s.classList.add("fine");
+      if(!count && times[i] > coarseEnd + 1) s.classList.add("fine");
       singDots.appendChild(s); return s;
     });
     singDots.classList.add("on");
@@ -780,7 +891,7 @@
     playToneBtn.textContent="▶ Play a tone";
     playPhraseBtn.textContent="▶ Play a phrase";
     if(!seq.length){
-      stage("Add a tone to begin",{cls:"muted",sub:"choose tones in step 1 above"});
+      stage("Add a tone to begin",{cls:"muted",sub:"pick tones above"});
     } else if(seq.length===1){
       stage("Ready — press Play a tone",{cls:"muted",sub:"one tone selected"});
     } else {
@@ -790,7 +901,7 @@
     updatePlayButtons();
   }
 
-  function resetReadout(){ targetOut.textContent="—"; noteOut.textContent="—"; centsOut.textContent="—"; needle.style.opacity="0"; plainLine.classList.add("hidden"); }
+  function resetReadout(){ targetOut.textContent="—"; noteOut.textContent="—"; centsOut.textContent="—"; needle.style.opacity="0"; }
 
   // ================= PIANO =================
   // Three-tier chain:
@@ -869,6 +980,19 @@
     setPianoStatus();
   }
 
+  // Output levels. Mobile (esp. iOS) plays back quietly, so run hot but keep a
+  // limiter in front of the destination to stop the peaks clipping.
+  const OUT_LEVEL=0.75, PIANO_LEVEL=1.6;
+  let masterOut=null;
+  function master(){
+    if(masterOut) return masterOut;
+    const comp=ac.createDynamicsCompressor();
+    comp.threshold.value=-6; comp.knee.value=6; comp.ratio.value=12;
+    comp.attack.value=0.003; comp.release.value=0.15;
+    comp.connect(ac.destination);
+    masterOut=comp; return masterOut;
+  }
+
   // play a note from a local sample, pitch-shifted by at most ~1 semitone
   function playLocalSample(bufAudio, semitoneShift, dur){
     return new Promise(res=>{
@@ -877,11 +1001,11 @@
       src.buffer=bufAudio;
       src.playbackRate.value=Math.pow(2, semitoneShift/12);
       const g=ac.createGain();
-      g.gain.setValueAtTime(0.9,t);
+      g.gain.setValueAtTime(PIANO_LEVEL,t);
       // let it ring, then fade so it stops cleanly at `dur`
-      g.gain.setValueAtTime(0.9,t+Math.max(0,dur-0.12));
+      g.gain.setValueAtTime(PIANO_LEVEL,t+Math.max(0,dur-0.12));
       g.gain.linearRampToValueAtTime(0.0001,t+dur);
-      src.connect(g).connect(ac.destination);
+      src.connect(g).connect(master());
       src.start(t); src.stop(t+dur+0.02);
       setTimeout(res, dur*1000);
     });
@@ -891,12 +1015,12 @@
   function playSynth(freq,dur){
     return new Promise(res=>{
       const t=ac.currentTime;
-      const out=ac.createGain(); out.connect(ac.destination);
+      const out=ac.createGain(); out.connect(master());
       const o=ac.createOscillator();
       o.type="triangle"; o.frequency.value=freq;
       out.gain.setValueAtTime(0,t);
-      out.gain.linearRampToValueAtTime(0.28,t+0.02);
-      out.gain.setValueAtTime(0.28,t+dur-0.06);
+      out.gain.linearRampToValueAtTime(OUT_LEVEL,t+0.02);
+      out.gain.setValueAtTime(OUT_LEVEL,t+dur-0.06);
       out.gain.linearRampToValueAtTime(0,t+dur);
       o.connect(out); o.start(t); o.stop(t+dur+0.02);
       o.onended=res;
@@ -988,8 +1112,10 @@
 
   // bold "Ready?" beat before recording opens
   async function readyBeat(ms){
-    stage("Ready?",{cls:"",sub:"take a breath — you'll sing next"});
+    stage("Get ready",{cls:"",sub:"take a breath — you sing when the dots run out"});
+    runDots(ms, 3);          // exactly three dots across the pause
     await wait(ms);
+    hideDots();
   }
 
   // ===== FOLLOW-ME PIPELINE =====
@@ -1178,9 +1304,11 @@
     const cls = cents===null ? "bad" : pw.tone;
     const cell=document.createElement("div");
     cell.className="rcell "+cls;
+    // No separate cents-only line: it duplicates the plain-words verdict. The cents
+    // shown next to the sung note describe that note, and converge on the target
+    // deviation exactly when it matters (a near miss).
     cell.innerHTML='<div class="rk">target</div><div class="exp">'+expected+'</div>'+
       '<div class="rk">you sang</div><div class="you">'+sang+'</div>'+
-      '<div class="dev">'+(cents===null?"—":(cents>0?"+":"")+cents+" ¢")+'</div>'+
       '<div class="plainmini">'+pw.txt+'</div>';
     resultsGrid.appendChild(cell);
   }
@@ -1199,26 +1327,19 @@
     updatePlayButtons();
   }
 
-  // capture + show live plain-words feedback after a sing window
+  // fill the live readout; returns a short plain-words line for the stage
   function commitFeedback(targetNote,best,reason){
-    const tf=noteToFreq(targetNote);
     targetOut.textContent=targetNote;
     if(best){
       const nd=best.note;
       noteOut.innerHTML=nd.name+' <small>'+(nd.centsFromNearest>=0?"+":"")+nd.centsFromNearest+'¢</small>';
       centsOut.innerHTML=(best.cents>0?"+":"")+best.cents+' <small>¢</small>';
       const pw=plainWords(best.cents);
-      plainLine.classList.remove("hidden");
-      plainLine.innerHTML = pw.txt==="on pitch"
-        ? 'You sang <b>'+nd.name+'</b> — <b>on pitch</b>. Nicely done.'
-        : 'You sang <b>'+nd.name+'</b>, which is <b>'+pw.txt+'</b> than <b>'+targetNote+'</b>.';
-    } else {
-      noteOut.textContent="—"; centsOut.textContent="—";
-      plainLine.classList.remove("hidden");
-      plainLine.innerHTML = reason==="short"
-        ? 'That tone was too short to read — try holding it a little longer.'
-        : 'No sound was detected — try singing a bit louder.';
+      return pw.txt==="on pitch" ? "on pitch — nicely done" : nd.name+" is "+pw.txt+" than "+targetNote;
     }
+    noteOut.textContent="—"; centsOut.textContent="—";
+    return reason==="short" ? "that tone was too short — hold it a little longer"
+                            : "no sound detected — try singing a bit louder";
   }
 
   // ================= PLAY: single / step advance =================
@@ -1227,13 +1348,21 @@
     const note=seq[i], tf=noteToFreq(note);
     targetOut.textContent=note;
     clearChipHighlights(); chipPlaying(i,true);
+    // iOS routes output to the quiet earpiece while a mic stream is live, so make
+    // sure the mic is released before we play the reference tone.
+    releaseMic();
     stage("Listen…",{cls:"",sub: seq.length>1 ? ("Note "+(i+1)+" of "+seq.length+" · "+note) : note, showWave:true});
     await playNote(note, playDur(timbre==="piano"?2.2:2.0));
     chipPlaying(i,false);
     if(!running) return null;
     wave.classList.remove("on");
-    await readyBeat(2000);            // 2s "Ready?" pause
+    // "Ready?" pause doubles as cover for re-acquiring the mic (no re-prompt once granted)
+    const readyP=readyBeat(2000);
+    const micP=startMic();
+    await readyP;
+    const okMic=await micP;
     if(!running) return null;
+    if(!okMic){ stage(micStatusTitle(),{cls:"warn",sub:micStatusSub()}); return null; }
     const winMs=singMsFor();
     if(effectiveGrade()==="follow"){
       // hold-based: only a tone held ~0.5s counts, so a quick sweep won't score
@@ -1244,6 +1373,7 @@
       const samples=await recordTake(holdWin);
       listening=false; cancelAnimationFrame(raf); needle.style.opacity="0.25";
       hideDots(); wave.classList.remove("on");
+      releaseMic();                       // free the mic so the next tone plays loud
       const held=segmentTake(samples);
       return classifyHeld(note, samples, held);   // {cap, reason}
     }
@@ -1253,6 +1383,7 @@
     const best=await captureWindow(winMs, 400);  // ignore first 400ms
     listening=false; cancelAnimationFrame(raf); needle.style.opacity="0.25";
     hideDots(); wave.classList.remove("on");
+    releaseMic();
     return {cap:best, reason: best?null:"none"};
   }
 
@@ -1261,9 +1392,8 @@
     if(!seq.length){ stage("Add at least one tone.",{cls:"warn"}); return; }
     // step through the tones one at a time
     setBusy(true);
-    const okMic=await startMic(); await ensureAudioCtx();
+    await ensureAudioCtx();
     if(timbre==="piano") await ensurePiano();
-    if(!okMic){ stage(micStatusTitle(),{cls:"warn",sub:micStatusSub()}); setBusy(false); return; }
 
     if(stepIdx===0){ resultsGrid.innerHTML=""; stepCaps=[]; results.classList.remove("hidden"); scoreEl.classList.add("hidden"); }
 
@@ -1271,17 +1401,17 @@
     const res=await playOne(i);
     const cap=res?res.cap:null, reason=res?res.reason:"none";
     stepCaps[i]=cap||null;
-    commitFeedback(seq[i],cap,reason);
+    const fbLine=commitFeedback(seq[i],cap,reason);
     addResult(seq[i],cap,reason);
 
     stepIdx++;
     if(stepIdx>=seq.length){
       showScore(stepCaps);
-      stage("Complete",{cls:"",sub:"check the summary below"});
+      stage("Complete",{cls:"",sub:fbLine});
       playToneBtn.textContent="▶ Play a tone again";
       stepIdx=0;
     } else {
-      stage("Ready for tone "+(stepIdx+1),{cls:"muted",sub:"press Play next tone"});
+      stage("Ready for tone "+(stepIdx+1),{cls:"muted",sub:fbLine});
       playToneBtn.textContent="▶ Play next tone";
     }
     setBusy(false);
@@ -1295,9 +1425,8 @@
   // ================= WHOLE PHRASE =================
   async function runWhole(){
     setBusy(true);
-    const okMic=await startMic(); await ensureAudioCtx();
+    await ensureAudioCtx();
     if(timbre==="piano") await ensurePiano();
-    if(!okMic){ stage(micStatusTitle(),{cls:"warn",sub:micStatusSub()}); setBusy(false); return; }
     await playWholeThenRepeat();
     playPhraseBtn.textContent="▶ Play a phrase again";
     setBusy(false);
@@ -1305,6 +1434,8 @@
 
   async function playWholeThenRepeat(){
     resultsGrid.innerHTML=""; results.classList.add("hidden"); scoreEl.classList.add("hidden"); resetReadout();
+    // release the mic so iOS plays the phrase through the main speaker, not the earpiece
+    releaseMic();
     stage("Listen to the phrase…",{cls:"",sub:seq.join("  ·  "),showWave:true});
     targetOut.textContent=seq.join(" ");
     for(let i=0;i<seq.length && running;i++){
@@ -1315,8 +1446,13 @@
     }
     wave.classList.remove("on");
     if(!running) return;
-    await readyBeat(2000);            // 2s "Ready?" before the continuous repeat
+    // "Ready?" pause covers re-acquiring the mic
+    const readyP=readyBeat(2000);
+    const micP=startMic();
+    await readyP;
+    const okMic=await micP;
     if(!running) return;
+    if(!okMic){ stage(micStatusTitle(),{cls:"warn",sub:micStatusSub()}); return; }
     results.classList.remove("hidden");
 
     if(effectiveGrade()==="follow"){
@@ -1334,7 +1470,7 @@
       listening=true;
       const samples=await recordTake(totalMs);
       listening=false; cancelAnimationFrame(raf); needle.style.opacity="0.25";
-      hideDots();
+      hideDots(); releaseMic();
       const held=segmentTake(samples);
       const aligned=alignHeld(seq, held);
       const caps=aligned.map((h,i)=>heldToCap(seq[i],h));
@@ -1349,7 +1485,7 @@
         extra=" · detected "+held.length+" held tone"+(held.length===1?"":"s")+" of "+seq.length;
       }
       if(caps.length) commitFeedback(seq[seq.length-1],caps[caps.length-1],missReason);
-      stage("Complete",{cls:"",sub:"check the summary below"+extra});
+      stage("Complete",{cls:"",sub:"see results below"+extra});
       return;
     }
 
@@ -1374,13 +1510,13 @@
       caps[i]=best;
     }
     listening=false; clearChipHighlights(); needle.style.opacity="0.25";
-    hideDots();
+    hideDots(); releaseMic();
     // render all results together after the flowing take
     resultsGrid.innerHTML="";
     caps.forEach((c,i)=>addResult(seq[i],c));
     showScore(caps);
     if(caps.length) commitFeedback(seq[seq.length-1],caps[caps.length-1]);
-    stage("Complete",{cls:"",sub:"check the summary below"});
+    stage("Complete",{cls:"",sub:"see results below"});
   }
 
   // ================= FEEDBACK MODAL =================
@@ -1434,6 +1570,7 @@
   renderChips();
   resetFlow();
   applyGradeUI();
+  updateSettingsSummary();
 })();
 </script>
 </body>

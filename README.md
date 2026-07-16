@@ -15,13 +15,12 @@ The tool is laid out as four steps, top to bottom:
 3. **Practice** — choose the format and how singing is graded, then Play.
 4. **Expected vs. sung** — your results.
 
-The tool is a five-step flow, each panel doing one thing:
+The interface is deliberately compact:
 
-1. **Selected tones** — choose the tones (add them, or generate a random arpeggio).
-2. **Sound & playback** — pure tone or piano, and playback tempo.
-3. **Grading** — Follow me or On the clock, plus singing time.
-4. **Play & sing** — two buttons: **Play a tone** hears each tone on its own, one at a time; **Play a phrase** plays the whole sequence, then you sing it back. With a single tone selected, only **Play a tone** is available.
-5. **Expected vs. sung** — your results.
+- **Tones** — build your phrase. Toggle between **Manual** (pick tones with the dropdown) and **Arpeggio** (generate a random arpeggio). Up to 9 tones.
+- **Settings** (collapsed by default) — sound, playback tempo, grading mode, singing time, and microphone environment. The defaults suit most people; the collapsed row shows a one-line summary of the current settings.
+- **Play & sing** — **Play a tone** hears each tone on its own, one at a time; **Play a phrase** plays the whole sequence, then you sing it back. With a single tone selected, only **Play a tone** is available.
+- **Results** — expected vs. sung for each tone.
 
 Build any sequence of up to 9 notes with the note picker, which spans the full singing range (**E2–C6**, bass through soprano). When two or more notes are in the sequence, a **Play sequence** button appears so you can hear the whole phrase and repeat it in one go.
 
