@@ -424,6 +424,15 @@
       <span class="set-note" id="grade-note">sing at your own pace — hold each tone at least half a second</span>
     </div>
 
+    <div class="set-row">
+      <div class="timing-cap">Pitch dial</div>
+      <div class="radioset" id="ind-mode" role="group" aria-label="Pitch dial scale">
+        <button data-m="beginner" class="active">Beginner</button>
+        <button data-m="advanced">Advanced</button>
+      </div>
+      <span class="set-note" id="ind-note">shows a whole octave, so the needle keeps moving even when you start far off</span>
+    </div>
+
     <div class="set-row" id="singtime-group">
       <div class="timing-cap">Singing time</div>
       <div class="radioset" id="sing-time" role="group" aria-label="Singing time per tone">
@@ -470,13 +479,13 @@
 
     <div class="meter" id="meter">
       <div class="band"></div>
-      <div class="grid-line" style="left:20%"></div>
-      <div class="grid-line" style="left:80%"></div>
+      <div class="grid-line" id="grid-lo" style="left:20%"></div>
+      <div class="grid-line" id="grid-hi" style="left:80%"></div>
       <div class="center"></div>
       <div class="needle" id="needle"><span class="needle-cap"></span></div>
       <div class="peg-label hidden" id="peg-label"></div>
-      <span class="scale" style="left:8px">−50¢ flat</span>
-      <span class="scale" style="right:8px">sharp +50¢</span>
+      <span class="scale" style="left:8px" id="scale-lo">−50¢ flat</span>
+      <span class="scale" style="right:8px" id="scale-hi">sharp +50¢</span>
     </div>
   </section>
 
@@ -590,6 +599,12 @@
   let gradeMode="follow";      // "follow" = segment & align (default) · "clock" = fixed slots
   let room="quiet";            // "quiet" = raw mic (best pitch) · "noisy" = browser noise suppression
   let ac=null,analyser=null,buf=null,micStream=null,micSrc=null,raf=null;
+  // Bounds on microphone startup. Every await in the startup path must be
+  // bounded: a call that hangs instead of rejecting would otherwise leave the
+  // app stuck on "starting the microphone…" with no error and no way back.
+  const AC_RESUME_MS=1500;    // ac.resume() can stay pending forever on Chromium/Edge
+  const MIC_LIVE_MS=2500;     // how long to wait for the track to deliver audio
+  const MIC_START_MS=8000;    // hard ceiling on the whole startMic() call
   let listening=false,running=false;
   let liveCents=null,liveNoteData=null;
   let stepIdx=0, stepCaps=[];
@@ -672,6 +687,8 @@
       gradeMode==="follow" ? "follow me" : "on the clock"
     ];
     if(room==="noisy") bits.push("noisy room");
+    // only worth mentioning when it isn't the default
+    if(indicatorMode==="advanced") bits.push("advanced dial");
     el.textContent=bits.join(" · ");
   }
 
@@ -711,9 +728,11 @@
       b.classList.add("active");
     });
   });
-  function singMsFor(){
+  // Default singing window. `single` = the tone is being sung on its own
+  // ("Play a tone"), which gets a roomier window than a tone inside a flowing phrase.
+  function singMsFor(single){
     if(singTimeMode!=="default") return singTimeMode;
-    return seq.length===1 ? 3000 : 2000;   // default adaptive behavior
+    return single ? 2500 : 2000;
   }
 
   // ---------- recording environment (mic constraints) ----------
@@ -727,12 +746,38 @@
       b.classList.add("active");
       $("room-note").textContent = room==="noisy" ? "reduces background noise; may affect pitch accuracy" : "raw signal — most accurate pitch";
       updateSettingsSummary();
-      // constraints are fixed at getUserMedia time — drop the stream so the next
-      // run re-acquires the mic with the new settings
-      releaseMic();
+      // constraints are fixed at getUserMedia time — drop the stream entirely so
+      // the next run re-acquires the mic with the new settings (a soft release
+      // would keep the old stream, and the new choice would silently do nothing)
+      releaseMicHard();
     });
   });
+  // ---------- platform ----------
+  // iOS routes output to the quiet earpiece for as long as a mic stream is live,
+  // so there we must fully stop the tracks before playing a reference tone and
+  // re-acquire afterwards. Desktop has no such routing quirk, so the stream can
+  // be held for the whole session — which also means the browser only asks for
+  // permission once. iPadOS 13+ reports itself as a Mac, hence the touch check.
+  const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                 (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+
+  // Stop feeding the mic into the graph between takes.
+  //   iOS      → hard release: stop the tracks (earpiece routing forces our hand,
+  //              and the re-prompt is acceptable / expected there).
+  //   desktop  → soft release: keep the stream and just mute the track, so the
+  //              recording indicator goes quiet between takes but the permission
+  //              and the stream survive for the whole session.
   function releaseMic(){
+    if(!IS_IOS){
+      try{ if(micStream) micStream.getAudioTracks().forEach(t=>t.enabled=false); }catch(e){}
+      return;
+    }
+    releaseMicHard();
+  }
+  // Fully tear the mic down. Used on iOS between takes, and everywhere when the
+  // capture constraints change (they're fixed at getUserMedia time, so a new
+  // stream is the only way to apply them).
+  function releaseMicHard(){
     try{ if(micSrc) micSrc.disconnect(); }catch(e){}
     try{ if(micStream) micStream.getTracks().forEach(t=>t.stop()); }catch(e){}
     micSrc=null; micStream=null; analyser=null; buf=null;
@@ -747,6 +792,21 @@
     // singing-time only matters On the clock; fade + disable it in Follow me
     $("singtime-group").classList.toggle("disabled", gradeMode==="follow");
   }
+  // ---------- pitch dial scale ----------
+  // Presentation only: this changes where the needle sits, never what is scored.
+  // Safe to switch mid-run, so it isn't gated on `running` like the others.
+  const IND_NOTE={
+    beginner:"shows a whole octave, so the needle keeps moving even when you start far off",
+    advanced:"±50¢ across the dial — precise, but pegs at the edge if you're further off"
+  };
+  document.querySelectorAll("#ind-mode button").forEach(b=>{
+    b.addEventListener("click",()=>{
+      setIndicatorMode(b.dataset.m);
+      $("ind-note").textContent=IND_NOTE[indicatorMode];
+      updateSettingsSummary();
+    });
+  });
+
   document.querySelectorAll("#grade-mode button").forEach(b=>{
     b.addEventListener("click",()=>{
       if(running) return;
@@ -882,7 +942,11 @@
   }
 
   // single-tone sequences always grade On the clock (segmentation needs a phrase)
-  function effectiveGrade(){ return seq.length===1 ? "clock" : gradeMode; }
+  // A single tone used to be forced into clock grading, which made the entire
+  // hold-based branch in playOne unreachable. Follow mode works fine for one
+  // tone — segmentTake/classifyHeld handle a one-note take — so honour the
+  // user's choice regardless of sequence length.
+  function effectiveGrade(){ return gradeMode; }
 
   // ---------- info stage helpers ----------
   function stage(status,{cls="muted",sub="",showWave=false}={}){
@@ -1106,25 +1170,56 @@
   }
 
   // ---------- pitch detection ----------
-  function autoCorrelate(b,sr){
+  // Returns {freq, conf} where conf (0..1) is how periodic the signal actually
+  // looks — essentially how tall the autocorrelation peak is relative to the
+  // signal's own energy. A sung vowel is highly periodic and scores ~0.9-1.0;
+  // room noise has no period and scores ~0.1.
+  //
+  // Why this replaced a loudness gate: the old code rejected anything under
+  // 0.01 RMS as silence. But the detector is accurate well below that — a quiet
+  // sustained vowel at 0.004 RMS still resolves to within ~1 cent. So the gate
+  // was throwing away perfectly good pitch and telling people singing a soft U
+  // or A that there was "no sound detected". Loudness was never the right
+  // question: a loud noise isn't a pitch and a quiet vowel is. Periodicity is
+  // the question, so measure that instead and let the caller decide.
+  const CONF_MIN=0.5;   // below this, the signal isn't periodic enough to trust.
+                        // Measured: sung vowels score >=0.90 across E2-C6 even at
+                        // very low level; pure noise tops out around 0.11. 0.5
+                        // sits in the middle of that gap, not near either edge.
+  const RMS_FLOOR=0.002; // true silence — below this there's nothing to analyse
+                         // and the correlation is all noise anyway.
+  // Plausible sung range. The upper bound was already here; the lower one is new
+  // and matters: mains hum at 50/60Hz is highly periodic, so it scores a high
+  // confidence and would otherwise sail through as a "note". Nobody is singing
+  // below E2 in a pitch exercise, so anything down there is the room, not you.
+  const F_MIN=70;        // just under E2 (82Hz), the app's lowest advertised note
+  const F_MAX=2000;      // well above C6 (1047Hz)
+  function autoCorrelateConf(b,sr){
     let n=b.length,rms=0;
     for(let i=0;i<n;i++) rms+=b[i]*b[i];
     rms=Math.sqrt(rms/n);
-    if(rms<0.01) return -1;
-    let r1=0,r2=n-1;const th=0.2;
-    for(let i=0;i<n/2;i++){ if(Math.abs(b[i])<th){ r1=i; break; } }
-    for(let i=1;i<n/2;i++){ if(Math.abs(b[n-i])<th){ r2=n-i; break; } }
-    b=b.slice(r1,r2); n=b.length;
-    if(n===0) return -1;
+    if(rms<RMS_FLOOR) return {freq:-1, conf:0, rms};
     const c=new Array(n).fill(0);
     for(let i=0;i<n;i++) for(let j=0;j<n-i;j++) c[i]+=b[j]*b[j+i];
+    if(c[0]<=0) return {freq:-1, conf:0, rms};
     let d=0; while(d<n-1 && c[d]>c[d+1]) d++;
     let mv=-1,mp=-1;
     for(let i=d;i<n;i++){ if(c[i]>mv){ mv=c[i]; mp=i; } }
+    if(mp<=0) return {freq:-1, conf:0, rms};
+    // Clarity: the peak relative to zero-lag energy. Corrected for the shrinking
+    // overlap at longer lags — without that, low notes (fewer cycles in the
+    // window) would look less certain than high ones purely as an artefact.
+    const overlap=n-mp;
+    const conf=Math.max(0, Math.min(1, mv/(c[0]*(overlap/n))));
     let T=mp;
     if(T>0 && T<n-1){ const x1=c[T-1],x2=c[T],x3=c[T+1],a=(x1+x3-2*x2)/2,bb=(x3-x1)/2; if(a) T-=bb/(2*a); }
-    if(T<=0) return -1;
-    return sr/T;
+    if(T<=0) return {freq:-1, conf:0, rms};
+    return {freq:sr/T, conf, rms};
+  }
+  // Back-compat shape: a bare frequency, or -1 when there's nothing trustworthy.
+  function autoCorrelate(b,sr){
+    const r=autoCorrelateConf(b,sr);
+    return (r.freq>0 && r.conf>=CONF_MIN) ? r.freq : -1;
   }
 
   // Single place that draws the needle, so every mode means the same thing:
@@ -1135,17 +1230,106 @@
   // Without the dead-zone the glow strobes as vibrato crosses the threshold.
   let locked=false;
   const LOCK_ON=15, LOCK_OFF=20;
+  // What counts as "near the target" when measuring time-in-range. Matches the
+  // 15¢ the results table already treats as on-pitch.
+  const IN_TUNE_C=15;
+  // Display smoothing. Raw frame-to-frame pitch jitters (vibrato, noise, detector
+  // wobble) and the needle looks frantic. Smooth the DISPLAYED value only — the
+  // grading always uses the raw readings, so accuracy is untouched.
+  let smoothCents=null;
+  const SMOOTH=0.25;            // 0 = frozen, 1 = no smoothing
+
+  // ---------- indicator scale ----------
+  // Two ways to lay the dial out. Both show the same measured deviation — this
+  // changes only where the needle SITS, never what is scored.
+  //
+  //   advanced : 1 cent = 1 percent, pegged past ±50¢. Precise, and what a
+  //              trained singer wants: full width is a quartertone.
+  //   beginner : identical out to LINEAR_C, then compressed so a whole octave
+  //              still fits on the dial.
+  //
+  // Why beginner needs it: someone who starts a fifth or an octave off sits
+  // pegged at the edge, and STAYS pegged while they hunt. Everything from -1200¢
+  // to -50¢ draws at exactly the same place, so the dial says "flat" but never
+  // "getting warmer" — the one thing it should say. With the curve, every step
+  // toward the note moves the needle.
+  //
+  // The compression is asinh, not log: log has no value at zero and would have
+  // to be special-cased around the target, which is precisely where the dial
+  // must stay honest. (Cents are ALREADY logarithmic in frequency — 100¢ is a
+  // semitone at any pitch — so this is a second, gentler compression on top.)
+  //
+  // The green zone occupies the SAME screen space in both modes: out to
+  // LINEAR_C the mapping is exactly 1:1, so ≤15¢ looks identical either way and
+  // switching modes doesn't change what "close" feels like.
+  let indicatorMode="beginner";   // "beginner" | "advanced"
+  const LINEAR_C=20;    // cents mapped 1:1 (comfortably outside the 15¢ green zone)
+  const EDGE_PCT=50;    // half-width of the dial
+  const BEG_MAX_C=1200; // one octave — the classic beginner error — reaches the edge
+  // Scale factor for the curve beyond LINEAR_C. Derived rather than chosen: the
+  // slope of asinh at the join is K/S, so setting K=S makes it exactly 1 and the
+  // curve leaves the linear zone with no visible kink. S is then whatever makes
+  // BEG_MAX_C land precisely on the edge. Solved once by bisection at startup.
+  const BEG_S=(function(){
+    const f=S=>LINEAR_C + S*Math.asinh((BEG_MAX_C-LINEAR_C)/S) - EDGE_PCT;
+    let lo=0.001, hi=1e6;
+    for(let i=0;i<200;i++){ const m=(lo+hi)/2; if(f(m)>0) hi=m; else lo=m; }
+    return (lo+hi)/2;
+  })();
+  // cents -> percent offset from centre
+  function centsToPct(c){
+    if(indicatorMode!=="beginner") return Math.max(-EDGE_PCT,Math.min(EDGE_PCT,c));
+    const a=Math.abs(c), s=c<0?-1:1;
+    if(a<=LINEAR_C) return c;
+    return s*Math.min(EDGE_PCT, LINEAR_C + BEG_S*Math.asinh((a-LINEAR_C)/BEG_S));
+  }
+  // How far off you can be before the needle pegs, in the current mode.
+  function pegLimit(){ return indicatorMode==="beginner" ? BEG_MAX_C : EDGE_PCT; }
+  // The dial's furniture has to tell the truth about the current scale, or the
+  // needle's position is unreadable. The green band is left alone deliberately:
+  // it marks ±15¢, and since both modes map that range 1:1 it is already correct
+  // in both — that is the whole point of keeping the centre linear.
+  function syncMeterScale(){
+    const beg=indicatorMode==="beginner";
+    const edge=beg?BEG_MAX_C:EDGE_PCT;      // cents at the far end of the dial
+    const mid=beg?100:30;                   // a useful intermediate marker
+    const gl=$("grid-lo"), gh=$("grid-hi"), sl=$("scale-lo"), sh=$("scale-hi");
+    if(gl) gl.style.left=(50+centsToPct(-mid))+"%";
+    if(gh) gh.style.left=(50+centsToPct(mid))+"%";
+    if(sl) sl.textContent="−"+edge+"¢ flat";
+    if(sh) sh.textContent="sharp +"+edge+"¢";
+  }
+  function setIndicatorMode(m){
+    indicatorMode = m==="advanced" ? "advanced" : "beginner";
+    document.querySelectorAll("#ind-mode button").forEach(b=>
+      b.classList.toggle("active", b.dataset.m===indicatorMode));
+    syncMeterScale();
+  }
+
   function drawNeedle(cents){
-    if(cents===null){ needle.style.opacity="0.25"; setLock(false); setPeg(null); return; }
-    const cl=Math.max(-50,Math.min(50,cents));
-    needle.style.left=(50+cl)+"%";
+    if(cents===null){ smoothCents=null; needle.style.opacity="0.25"; setLock(false); setPeg(null); return; }
+    // jump straight to big changes (a new note), ease small ones (jitter)
+    if(smoothCents===null || Math.abs(cents-smoothCents)>250) smoothCents=cents;
+    else smoothCents = smoothCents + (cents-smoothCents)*SMOOTH;
+    const shown=Math.round(smoothCents);
+    needle.style.left=(50+centsToPct(shown))+"%";
     needle.style.opacity="1";
-    const a=Math.abs(cents);
+    const a=Math.abs(shown);
+    // Colour still keys off the real deviation, not the drawn position — the
+    // curve must never make "badly off" look better than it is.
     const col=a<=15?"var(--good)":a<=35?"var(--ok)":"var(--bad)";
     needle.style.background=col; needle.style.color=col;
     if(!locked && a<=LOCK_ON) setLock(true);
     else if(locked && a>LOCK_OFF) setLock(false);
-    setPeg(Math.abs(cents)>50 ? cents : null);
+    setPeg(a>pegLimit() ? shown : null);
+  }
+  // A take just ended: dim the needle and clear any live-frame state, so a stale
+  // "way off" label from mid-take can't sit next to the final result.
+  function parkNeedle(){
+    smoothCents=null;
+    needle.style.opacity="0.25";
+    setLock(false);
+    setPeg(null);
   }
   function setLock(on){
     locked=on;
@@ -1183,7 +1367,7 @@
       lastDetect=now;
       analyser.getFloatTimeDomainData(buf);
       const f=autoCorrelate(buf,ac.sampleRate);
-      if(f>0 && f<2000){
+      if(f>=F_MIN && f<F_MAX){
         const nd=freqToNoteData(f);
         liveNoteData=nd;
         noteOut.innerHTML=nd.name+' <small>'+(nd.centsFromNearest>=0?"+":"")+nd.centsFromNearest+'¢</small>';
@@ -1198,16 +1382,106 @@
     if(listening) raf=requestAnimationFrame(()=>detectLoop(targetFreq));
   }
 
-  function captureWindow(ms,graceMs){
+  // ---------- representative-pitch grading ----------
+  // Grade the pitch the singer actually settled on, not their luckiest instant.
+  //
+  // The old approach kept whichever single frame came closest to the target. That
+  // rewards the wrong thing: a slow glide from flat to sharp passes *through* the
+  // target and scored a perfect 0¢, as did a wild wobble that never held any
+  // pitch at all — both beat an honest singer sitting steadily 25¢ flat. Accuracy
+  // has to be measured over a settled stretch, and steadiness has to be measured
+  // separately, or "sounds right for one 30ms frame" reads as "in tune".
+  const MIN_VOICED_FRAMES=8;   // below this there's not enough signal to judge
+  const STABLE_WIN_MS=400;     // length of the steadiest stretch we look for
+  const MAX_UNSTABLE=45;       // cents of wobble (MAD) above which nothing "settled"
+  const NEAR_C=150;            // how far from their own centre a frame can sit and
+                               // still count as part of one held tone
+  const MIN_IN_RANGE=0.5;      // fraction of settled frames that must hold together
+
+  function median(a){
+    if(!a.length) return null;
+    const s=[...a].sort((x,y)=>x-y), m=s.length>>1;
+    return s.length%2 ? s[m] : (s[m-1]+s[m])/2;
+  }
+  // median with the extreme 10% trimmed off each end — ignores a stray octave
+  // blip or a detector outlier without moving the centre for normal input
+  function trimmedMedian(a){
+    if(a.length<5) return median(a);
+    const s=[...a].sort((x,y)=>x-y), k=Math.floor(s.length*0.1);
+    return median(s.slice(k, s.length-k));
+  }
+  // median absolute deviation: spread that a couple of outliers can't inflate,
+  // unlike standard deviation. This is our "steadiness" measure.
+  function mad(a,med){ return median(a.map(v=>Math.abs(v-med))); }
+
+  // Measure a take of {cents} frames. Returns the representative deviation plus
+  // the evidence behind it, so callers can decide *and* explain.
+  function measureTake(frames, tolCents){
+    const voiced=frames.filter(f=>f.cents!==null);
+    if(!voiced.length) return {ok:false, reason:"none"};
+    if(voiced.length<MIN_VOICED_FRAMES) return {ok:false, reason:"short"};
+    const cs=voiced.map(f=>f.cents);
+    // Find the steadiest STABLE_WIN_MS stretch and treat everything from there
+    // on as the settled portion. This is what lets an initial scoop be ignored
+    // without hard-coding a grace period: the scoop simply isn't the steadiest part.
+    const w=Math.max(3, Math.round(STABLE_WIN_MS/DETECT_MS));
+    let best=null;
+    for(let i=0;i+w<=cs.length;i++){
+      const seg=cs.slice(i,i+w), m=median(seg), spread=mad(seg,m);
+      if(!best || spread<best.spread) best={i,spread};
+    }
+    const startAt=best?best.i:0;
+    const settled=cs.slice(startAt);
+    const dev=trimmedMedian(settled);
+    const stability=mad(settled, dev);          // wobble — independent of accuracy
+    // Cohesion: did the settled frames stay together as ONE tone? Measured around
+    // their own centre, deliberately not around the target — a singer holding a
+    // rock-steady note 40¢ flat has sung a real tone and must be graded as 40¢
+    // flat, not rejected as "unsteady". Accuracy is `dev`'s job alone; conflating
+    // the two here would refuse to grade exactly the people who need the number.
+    const inRange=settled.filter(c=>Math.abs(c-dev)<=NEAR_C).length/settled.length;
+    // Reported separately for Detailed grading: how much of the take was actually
+    // on target, using the strict tolerance.
+    const onTarget=settled.filter(c=>Math.abs(c)<=(tolCents||IN_TUNE_C)).length/settled.length;
+    // Which side they approached from, when there's a clear approach to report
+    const lead=cs.slice(0,startAt);
+    const from = lead.length>=3 ? (median(lead)>dev ? "above" : "below") : null;
+    return {ok:true, dev, stability, inRange, onTarget, from,
+            frames:settled.length, settledFrom:startAt, total:cs.length};
+  }
+  // Turn a measurement into a verdict. Accuracy alone isn't enough: a glide has a
+  // plausible median but huge spread, so steadiness and time-in-range both gate it.
+  function takeVerdict(m){
+    if(!m.ok) return m.reason;
+    if(m.stability>MAX_UNSTABLE) return "unsteady";
+    if(m.inRange<MIN_IN_RANGE) return "unsteady";
+    return null;                                             // null = gradeable
+  }
+
+  // Record a window and grade the settled pitch within it.
+  // graceMs is kept for callers that want a hard skip at the start; the stable-
+  // window search already ignores a scoop, so it's normally 0 now.
+  function captureWindow(ms,graceMs,targetFreq,tolCents){
     graceMs=graceMs||0;
+    tolCents=tolCents||IN_TUNE_C;
     return new Promise(resolve=>{
       liveCents=null; liveNoteData=null;
-      let best=null; const start=Date.now();
+      const frames=[]; const start=Date.now();
       const iv=setInterval(()=>{
-        if(Date.now()-start < graceMs) return; // ignore the first moment (breath / scoop into note)
-        if(liveCents!==null){ if(best===null || Math.abs(liveCents)<Math.abs(best.cents)) best={cents:liveCents,note:liveNoteData}; }
-      },70);
-      setTimeout(()=>{ clearInterval(iv); resolve(best); },ms);
+        if(Date.now()-start < graceMs) return;
+        frames.push({cents: liveCents, note: liveNoteData});
+      },DETECT_MS);
+      setTimeout(()=>{
+        clearInterval(iv);
+        const m=measureTake(frames, tolCents);
+        const bad=takeVerdict(m);
+        if(bad){ resolve({cap:null, reason:bad, detail:m.ok?m:null}); return; }
+        // report the representative pitch, not any single frame
+        const cap={ cents:Math.round(m.dev),
+                    note: targetFreq ? freqToNoteData(targetFreq*Math.pow(2,m.dev/1200))
+                                     : (frames.filter(f=>f.note).slice(-1)[0]||{}).note || null };
+        resolve({cap, reason:null, detail:m});
+      },ms);
     });
   }
 
@@ -1220,12 +1494,15 @@
     runDots(ms, 3);
     await wait(ms);
     if(!micPromise){ hideDots(); return true; }
-    // mic should be up by now; if not, blink the last dot and keep waiting
+    // mic should be up by now; if not, blink the last dot and keep waiting.
+    // startMic() is itself bounded (MIC_START_MS), so this await always settles —
+    // but it's raced against a ceiling anyway so a future unbounded path here
+    // can't silently reintroduce the "stuck on starting the microphone…" hang.
     let ok=await Promise.race([micPromise, wait(0).then(()=>"pending")]);
     if(ok==="pending"){
       blinkLastDot(true);
       stage("Get ready",{cls:"",sub:"starting the microphone…"});
-      ok=await micPromise;
+      ok=await withTimeout(micPromise, MIC_START_MS+500, false);
       blinkLastDot(false);
     }
     hideDots();
@@ -1259,7 +1536,7 @@
           lastRun=now;
           analyser.getFloatTimeDomainData(buf);
           const f=autoCorrelate(buf,ac.sampleRate);
-          if(f>0 && f<2000){
+          if(f>=F_MIN && f<F_MAX){
             samples.push({t,freq:f});
             lastVoiced=t; everVoiced=true;
             const nd=freqToNoteData(f);
@@ -1298,9 +1575,18 @@
   const SEG_TOL=60;        // cents tolerance to stay "the same note"
   const MIN_HOLD=500;      // ms a pitch must be held to count (lowered from 1000 for beginners)
   const HOLD_SLACK=100;    // allow ~0.5s holds that fall just short due to frame timing
+  // How long the detector can lose the voice before we call it a real pause.
+  // The detector drops frames for ordinary reasons mid-vowel — a consonant, a
+  // breath catch, a moment under the loudness gate — and a single dropped frame
+  // is 33ms. Ending a note on one of those used to split one sung tone into two
+  // halves; when both halves then fell under MIN_HOLD, the note vanished from
+  // the results entirely and was reported as never sung. Anything under this is
+  // treated as a dropout in one continuous tone; anything longer is a pause.
+  const GAP_BRIDGE_MS=150;
   function segmentTake(samples){
     const held=[];
     let run=[];             // current run of voiced samples near one pitch
+    let pending=[];         // unvoiced frames we haven't yet judged: dropout or pause?
     const cents=(a,b)=>1200*Math.log2(a/b);
     function centerFreq(r){ // median freq of a run
       const fs=r.map(s=>s.freq).sort((x,y)=>x-y);
@@ -1314,11 +1600,28 @@
           held.push({freq:cf, start:run[0].t, dur});
         }
       }
-      run=[];
+      run=[]; pending=[];
     }
     for(const s of samples){
-      if(s.freq===null){ flush(); continue; }        // silence breaks a run
-      if(run.length===0){ run=[s]; continue; }
+      if(s.freq===null){
+        // Don't decide yet. A gap only means something once we see whether the
+        // voice comes back, how long it was away, and on what pitch.
+        if(run.length) pending.push(s);
+        continue;
+      }
+      if(run.length===0){ run=[s]; pending=[]; continue; }
+      if(pending.length){
+        const gapMs=s.t-pending[0].t;
+        const sameNote=Math.abs(cents(s.freq, centerFreq(run)))<=SEG_TOL;
+        // Forgive the gap only if it was brief AND the voice came back on the
+        // same pitch. A long silence is a real pause; a different pitch means a
+        // new note however brief the gap — neither is a dropout.
+        if(gapMs<=GAP_BRIDGE_MS && sameNote){
+          pending=[];
+        } else {
+          flush(); run=[s]; continue;
+        }
+      }
       const c=centerFreq(run);
       if(Math.abs(cents(s.freq,c))<=SEG_TOL){ run.push(s); }
       else { flush(); run=[s]; }                      // pitch jumped → new note
@@ -1327,30 +1630,66 @@
     return held;               // ordered list of held notes actually sung
   }
 
-  // Align sung held-notes to the expected sequence. Count-aware:
-  // if counts match, 1-to-1 in order; otherwise map each expected note to the
-  // nearest-in-order held note (monotonic greedy), leaving unmatched as null.
+  // Align sung held-notes to the expected sequence.
+  //
+  // This is an order-preserving (monotonic) alignment solved with dynamic
+  // programming — the same shape as a Needleman-Wunsch / DTW alignment. Three
+  // moves are allowed at each step:
+  //   match  — pair expected[i] with held[j], cost = |cents error|
+  //   skip-e — the singer left this expected tone out          (cost SKIP_COST)
+  //   skip-h — the singer sang an extra tone that isn't in the phrase (cost SKIP_COST)
+  // and we take the cheapest total path.
+  //
+  // Why not greedy: a greedy pass has to commit to a pairing before it can see
+  // whether that choice strands a later tone. When the singer drops a note, a
+  // greedy walk slides every remaining tone one slot over, so a correctly sung
+  // tone gets graded against the wrong target and reads as wildly out of tune.
+  // The DP considers the whole phrase at once, so a dropped or added tone stays
+  // a local "—" instead of corrupting its neighbours.
+  //
+  // MATCH_TOL caps how far a pairing can stretch: past this the two tones are
+  // treated as unrelated events rather than a very bad attempt at each other.
+  // It sits above a whole tone (200¢) so that a phrase sung uniformly
+  // transposed still reports its true offset rather than scoring as all-missing.
+  // SKIP_COST is the price of leaving something unpaired — set equal to
+  // MATCH_TOL so a pairing is preferred exactly while it's within tolerance.
+  const MATCH_TOL=250;   // cents; beyond this, don't call it a match at all
+  const SKIP_COST=250;   // cents-equivalent penalty for an unpaired tone
   function alignHeld(expected, held){
-    const out=new Array(expected.length).fill(null);
-    if(held.length===0) return out;
-    if(held.length===expected.length){
-      for(let i=0;i<expected.length;i++) out[i]=held[i];
-      return out;
-    }
-    // monotonic greedy: walk both lists, matching in order by best pitch fit
-    let hi=0;
-    for(let i=0;i<expected.length;i++){
-      const tf=noteToFreq(expected[i]);
-      // among remaining held notes, pick the earliest that's a reasonable match,
-      // but don't consume more held notes than remain for the rest of expected
-      const remainExpected=expected.length-i;
-      let bestIdx=-1,bestErr=Infinity;
-      for(let j=hi;j<=held.length-remainExpected;j++){
-        if(j<0) continue;
-        const err=Math.abs(1200*Math.log2(held[j].freq/tf));
-        if(err<bestErr){ bestErr=err; bestIdx=j; }
+    const N=expected.length, M=held.length;
+    const out=new Array(N).fill(null);
+    if(M===0 || N===0) return out;
+
+    const tf=expected.map(noteToFreq);
+    const err=(i,j)=>Math.abs(1200*Math.log2(held[j].freq/tf[i]));
+
+    // D[i][j] = cheapest cost to align the first i expected against first j held.
+    // B[i][j] = the move that achieved it, for the traceback.
+    const D=[], B=[];
+    for(let i=0;i<=N;i++){ D.push(new Array(M+1).fill(Infinity)); B.push(new Array(M+1).fill(null)); }
+    D[0][0]=0;
+    for(let j=1;j<=M;j++){ D[0][j]=D[0][j-1]+SKIP_COST; B[0][j]="h"; }
+    for(let i=1;i<=N;i++){
+      D[i][0]=D[i-1][0]+SKIP_COST; B[i][0]="e";
+      for(let j=1;j<=M;j++){
+        let best=D[i-1][j]+SKIP_COST, op="e";      // expected tone not sung
+        const skipH=D[i][j-1]+SKIP_COST;           // extra sung tone
+        if(skipH<best){ best=skipH; op="h"; }
+        const e=err(i-1,j-1);
+        if(e<=MATCH_TOL){
+          const m=D[i-1][j-1]+e;                   // pair them up
+          if(m<best){ best=m; op="m"; }
+        }
+        D[i][j]=best; B[i][j]=op;
       }
-      if(bestIdx>=0){ out[i]=held[bestIdx]; hi=bestIdx+1; }
+    }
+    // walk the cheapest path back, recording only the matches
+    let i=N,j=M;
+    while(i>0 || j>0){
+      const op=B[i][j];
+      if(op==="m"){ out[i-1]=held[j-1]; i--; j--; }
+      else if(op==="e"){ i--; }
+      else { j--; }
     }
     return out;
   }
@@ -1362,15 +1701,21 @@
     const cents=Math.round(1200*Math.log2(held.freq/tf));
     return {cents, note:freqToNoteData(held.freq)};
   }
-  // classify a single-tone follow-me take: returns {cap, reason}
-  // reason: null (ok) · "none" (no signal at all) · "short" (signal but nothing held long enough)
+  // Classify a single-tone follow-me take: returns {cap, reason}
+  // reason: null (ok) · "none" (no signal at all) · "short" (nothing held long enough)
+  //
+  // When the singer held several distinct pitches, take the one they committed to
+  // — the longest — rather than whichever happened to land nearest the target.
+  // Picking the nearest would let someone wander across several wrong notes and
+  // still score on the one that brushed past, which is the same "luckiest moment
+  // wins" flaw the frame-level grading had.
   function classifyHeld(targetNote, samples, held){
     const voiced = samples.some(s=>s.freq!==null);
     if(held && held.length){
-      const tf=noteToFreq(targetNote);
-      let bi=0,berr=Infinity;
-      held.forEach((h,idx)=>{ const e=Math.abs(1200*Math.log2(h.freq/tf)); if(e<berr){berr=e;bi=idx;} });
-      return {cap:heldToCap(targetNote,held[bi]), reason:null};
+      let bi=0;
+      held.forEach((h,idx)=>{ if(h.dur>held[bi].dur) bi=idx; });
+      return {cap:heldToCap(targetNote,held[bi]), reason:null,
+              detail:{dur:held[bi].dur, holds:held.length}};
     }
     return {cap:null, reason: voiced ? "short" : "none"};
   }
@@ -1380,9 +1725,27 @@
   // why the mic failed, for a useful message
   let micError="";
   async function startMic(){
-    // Even if we already have an analyser, the context may have been suspended by
-    // iOS (interruption / audio-route change). Resume it or the meter reads silence.
-    if(ac && analyser){ await ensureAudioCtx(); return true; }
+    return withTimeout(startMicInner(), MIC_START_MS, false).then(ok=>{
+      // A timeout here means startMicInner is still pending and may yet resolve
+      // true, leaving a half-built graph nobody owns — tear it down so the next
+      // attempt starts clean rather than inheriting a dead stream.
+      if(!ok && !micTrackLive()){ if(!micError) micError="notlive"; releaseMicHard(); }
+      return ok;
+    });
+  }
+  async function startMicInner(){
+    // Fast path: we already hold a live stream (desktop, soft-released between
+    // takes). Un-mute the track and make sure the context is running — iOS can
+    // suspend it on interruption / audio-route change, and a suspended context
+    // reads as pure silence.
+    if(ac && analyser && micStream){
+      try{ micStream.getAudioTracks().forEach(t=>t.enabled=true); }catch(e){}
+      const up=await ensureAudioCtx();
+      // the stream can be revoked out from under us (device unplugged, permission
+      // reset) — if it's no longer usable, fall through and acquire a fresh one
+      if(up && micTrackLive()) return true;
+      releaseMicHard();
+    }
     micError="";
     // mic needs a secure context — file:// and plain http are blocked by browsers
     if(!window.isSecureContext && location.protocol!=="http:"){
@@ -1400,24 +1763,46 @@
         noiseSuppression: useProcessing,
         autoGainControl: useProcessing
       }};
+      // Drop any previous stream before opening a new one — two live streams on
+      // the same device is what leaves the recording indicator stuck on.
+      releaseMicHard();
       try{
         micStream=await navigator.mediaDevices.getUserMedia(constraints);
       }catch(e){
-        // some browsers reject the constraint object — fall back to plain audio
-        micStream=await navigator.mediaDevices.getUserMedia({audio:true});
+        if(e && (e.name==="NotAllowedError" || e.name==="SecurityError")){
+          micError="blocked"; return false;
+        }
+        if(e && (e.name==="NotFoundError" || e.name==="OverconstrainedError")){
+          // no input device at all, or the constraints can't be met — retry plain
+          try{ micStream=await navigator.mediaDevices.getUserMedia({audio:true}); }
+          catch(e2){
+            micError = (e2 && e2.name==="NotFoundError") ? "nodevice" : "failed";
+            return false;
+          }
+        } else {
+          // some browsers reject the constraint object — fall back to plain audio
+          try{ micStream=await navigator.mediaDevices.getUserMedia({audio:true}); }
+          catch(e2){
+            micError = (e2 && e2.name==="NotAllowedError") ? "blocked" : "failed";
+            return false;
+          }
+        }
       }
-      // make sure the context is actually running before we wire the mic in
-      await ensureAudioCtx();
+      // make sure the context is actually running before we wire the mic in.
+      // This is the call that hangs on Edge, so it's bounded — and a context
+      // that never reaches "running" means silence, not a working mic.
+      const up=await ensureAudioCtx();
+      if(!up){ micError="noaudio"; releaseMicHard(); return false; }
       const src=ac.createMediaStreamSource(micStream);
       analyser=ac.createAnalyser(); analyser.fftSize=2048; buf=new Float32Array(analyser.fftSize);
       src.connect(analyser);
       micSrc=src;
       // The stream can exist before the track is actually delivering audio (iOS is
       // slow to come up after repeated release/acquire). Wait for it to go live.
-      const ok=await micLive(2500);
-      if(!ok){ micError="notlive"; return false; }
+      const ok=await micLive(MIC_LIVE_MS);
+      if(!ok){ micError="notlive"; releaseMicHard(); return false; }
       return true;
-    }catch(e){ micError="failed"; return false; }
+    }catch(e){ micError="failed"; releaseMicHard(); return false; }
   }
   // True once the audio track reports "live" AND the analyser sees real samples.
   function micTrackLive(){
@@ -1445,19 +1830,50 @@
   function micStatusTitle(){
     if(micError==="insecure") return "Microphone needs https";
     if(micError==="unsupported") return "Microphone not supported";
+    if(micError==="nodevice") return "No microphone found";
+    if(micError==="noaudio") return "Audio didn't start";
     if(micError==="notlive") return "Microphone didn't start";
     return "Microphone blocked";
   }
   function micStatusSub(){
     if(micError==="insecure") return "open this page over https (e.g. your GitHub Pages link) — browsers block the mic on local files";
     if(micError==="unsupported") return "this browser doesn't provide microphone access";
+    if(micError==="nodevice") return "no microphone is connected — plug one in and press Play to try again";
+    // the Edge hang lands here: permission was granted, but the audio engine
+    // never came up, so say exactly that rather than blaming permissions
+    if(micError==="noaudio") return "microphone permission was granted, but audio could not start — press Play to try again";
     if(micError==="notlive") return "the mic didn't come up in time — press Play to try again";
     return "allow mic access in your browser to continue";
   }
 
+  // Resolve to `v` if `p` hasn't settled within `ms`. Used to bound calls that
+  // can hang rather than reject — see ensureAudioCtx.
+  function withTimeout(p, ms, v){
+    return Promise.race([ Promise.resolve(p).catch(()=>v), wait(ms).then(()=>v) ]);
+  }
+  // Bring the audio context up, and report whether it actually got there.
+  //
+  // ac.resume() is specified to return a promise, but Chromium (incl. Edge) can
+  // leave it *permanently pending* rather than rejecting when the context can't
+  // start — typically when the call no longer sits on a user-gesture path. The
+  // permission prompt does exactly that: granting it consumes the gesture, and
+  // the await on getUserMedia crosses a task boundary, so the resume() that
+  // follows can hang forever. Anything that awaits it hangs with it, which is
+  // why this must be bounded rather than trusted.
+  //
+  // Returns true only if the context is genuinely "running" — a resolved resume()
+  // is not sufficient evidence, so the state is checked directly.
   async function ensureAudioCtx(){
-    if(!ac) ac=new (window.AudioContext||window.webkitAudioContext)();
-    if(ac.state==="suspended") await ac.resume();
+    if(!ac){
+      try{ ac=new (window.AudioContext||window.webkitAudioContext)(); }
+      catch(e){ return false; }
+    }
+    if(ac.state==="running") return true;
+    // "interrupted" is a Safari/iOS state that also needs a resume
+    if(ac.state==="suspended" || ac.state==="interrupted"){
+      await withTimeout(ac.resume(), AC_RESUME_MS, null);
+    }
+    return ac.state==="running";
   }
 
   // ---------- results ----------
@@ -1467,6 +1883,7 @@
     let pw;
     if(cents!==null) pw=plainWords(cents);
     else if(reason==="short") pw={txt:"tone too short — hold it a bit longer",tone:"bad"};
+    else if(reason==="unsteady") pw={txt:"pitch kept moving — hold one steady tone",tone:"bad"};
     else pw={txt:"no sound detected",tone:"bad"};
     const cls = cents===null ? "bad" : pw.tone;
     const cell=document.createElement("div");
@@ -1529,7 +1946,7 @@
     const okMic=await readyBeat(2000, micP);
     if(!running) return null;
     if(!okMic){ stage(micStatusTitle(),{cls:"warn",sub:micStatusSub()}); return null; }
-    const winMs=singMsFor();
+    const winMs=singMsFor(true);      // one tone on its own
     if(effectiveGrade()==="follow"){
       // hold-based: only a tone held ~0.5s counts, so a quick sweep won't score
       const holdWin=Math.max(winMs, MIN_HOLD+600);
@@ -1537,7 +1954,7 @@
       runDots(holdWin);
       listening=true;
       const samples=await recordTake(holdWin, tf);
-      listening=false; cancelAnimationFrame(raf); needle.style.opacity="0.25";
+      listening=false; cancelAnimationFrame(raf); parkNeedle();
       hideDots(); wave.classList.remove("on");
       releaseMic();                       // free the mic so the next tone plays loud
       const held=segmentTake(samples);
@@ -1546,18 +1963,23 @@
     stage("Sing!",{cls:"",sub:"your turn — hold the note"});
     runDots(winMs);
     listening=true; detectLoop(tf);
-    const best=await captureWindow(winMs, 400);  // ignore first 400ms
-    listening=false; cancelAnimationFrame(raf); needle.style.opacity="0.25";
+    // no hard grace needed: the stable-window search already skips a scoop
+    const r=await captureWindow(winMs, 0, tf);
+    listening=false; cancelAnimationFrame(raf); parkNeedle();
     hideDots(); wave.classList.remove("on");
     releaseMic();
-    return {cap:best, reason: best?null:"none"};
+    return {cap:r.cap, reason:r.reason, detail:r.detail};
   }
 
   playToneBtn.onclick=async ()=>{
     if(running) return;
     if(!seq.length){ stage("Add at least one tone.",{cls:"warn"}); return; }
-    // step through the tones one at a time
+    // step through the tones one at a time.
+    // Everything from here is wrapped so setBusy(false) always runs: an early
+    // return (mic failure, stopped run) used to leave every control with
+    // pointer-events:none, locking the app until reload.
     setBusy(true);
+    try{
     await ensureAudioCtx();
     if(timbre==="piano") await ensurePiano();
 
@@ -1580,7 +2002,7 @@
       stage("Ready for tone "+(stepIdx+1),{cls:"muted",sub:fbLine});
       playToneBtn.textContent="▶ Play next tone";
     }
-    setBusy(false);
+    } finally { setBusy(false); }
   };
 
   playPhraseBtn.onclick=async ()=>{
@@ -1591,11 +2013,12 @@
   // ================= WHOLE PHRASE =================
   async function runWhole(){
     setBusy(true);
-    await ensureAudioCtx();
-    if(timbre==="piano") await ensurePiano();
-    await playWholeThenRepeat();
-    playPhraseBtn.textContent="▶ Play a phrase again";
-    setBusy(false);
+    try{
+      await ensureAudioCtx();
+      if(timbre==="piano") await ensurePiano();
+      await playWholeThenRepeat();
+      playPhraseBtn.textContent="▶ Play a phrase again";
+    } finally { setBusy(false); }
   }
 
   // map an index in the played sequence back to the chip it corresponds to
@@ -1627,7 +2050,7 @@
 
     if(effectiveGrade()==="follow"){
       // ---- FOLLOW ME: one roomy window, then segment & align ----
-      const budgetPer = singMsFor();
+      const budgetPer = singMsFor(false);
       const FLOOR_PER = MIN_HOLD + 500;                 // hold + transition room
       const perNote = Math.max(budgetPer, FLOOR_PER);
       const totalMs = perNote*pseq.length + 500;        // small tail
@@ -1636,7 +2059,7 @@
       clearChipHighlights();
       listening=true;
       const samples=await recordTake(totalMs, null, pseq);
-      listening=false; cancelAnimationFrame(raf); needle.style.opacity="0.25";
+      listening=false; cancelAnimationFrame(raf); parkNeedle();
       hideDots(); releaseMic();
       const held=segmentTake(samples);
       const aligned=alignHeld(pseq, held);
@@ -1656,26 +2079,27 @@
     }
 
     // ---- ON THE CLOCK: fixed per-tone slots ----
-    const perNote = singMsFor();
+    const perNote = singMsFor(false);
     const totalMs = perNote*pseq.length;
     stage("Sing!",{cls:"",sub:"repeat the whole phrase — keep going"});
     runDots(totalMs);
 
     listening=true;
     const caps=new Array(pseq.length).fill(null);
-    const graceMs=350;
+    const reasons=new Array(pseq.length).fill(null);
     for(let i=0;i<pseq.length && running;i++){
       const tf=noteToFreq(pseq[i]);
       clearChipHighlights(); chipPlaying(chipIndexFor(i),true);
       detectLoop(tf);
-      const best=await captureWindow(perNote, i===0?graceMs:0);
+      // grace of 0: the stable-window search already ignores the approach to the tone
+      const r=await captureWindow(perNote, 0, tf);
       cancelAnimationFrame(raf);
-      caps[i]=best;
+      caps[i]=r.cap; reasons[i]=r.reason;
     }
-    listening=false; clearChipHighlights(); needle.style.opacity="0.25";
+    listening=false; clearChipHighlights(); parkNeedle();
     hideDots(); releaseMic();
     resultsGrid.innerHTML="";
-    caps.forEach((c,i)=>addResult(pseq[i],c));
+    caps.forEach((c,i)=>addResult(pseq[i],c,reasons[i]));
     showScore(caps,pseq.length);
     if(caps.length) commitFeedback(pseq[pseq.length-1],caps[caps.length-1]);
     stage("Complete",{cls:"",sub:"see results below"});
@@ -1734,6 +2158,11 @@
   // otherwise playback is silent and the meter reads nothing.
   document.addEventListener("visibilitychange",()=>{
     if(!document.hidden && ac && ac.state==="suspended"){ ac.resume().catch(()=>{}); }
+    // Don't hold a live mic on a backgrounded tab: on desktop the stream would
+    // otherwise survive the whole session and keep the browser's recording
+    // indicator lit while the user is elsewhere. The next run re-acquires it —
+    // silently, since permission has already been granted for this origin.
+    if(document.hidden && !running) releaseMicHard();
   });
   window.addEventListener("pageshow",()=>{
     if(ac && ac.state==="suspended") ac.resume().catch(()=>{});
@@ -1742,6 +2171,7 @@
   renderChips();
   resetFlow();
   applyGradeUI();
+  syncMeterScale();
   updateSettingsSummary();
 })();
 </script>
