@@ -235,8 +235,23 @@
   .meter .grid-line{position:absolute;top:14px;bottom:26px;width:1px;background:var(--line)}
   .meter .center{position:absolute;top:8px;bottom:8px;left:50%;width:2px;background:var(--dim);transform:translateX(-50%);border-radius:2px}
   .meter .scale{position:absolute;bottom:6px;font-family:var(--mono);font-size:10px;color:var(--dim)}
-  .needle{position:absolute;top:14px;bottom:26px;left:50%;width:3px;border-radius:3px;background:var(--accent);transform:translateX(-50%);opacity:0;transition:left .07s linear,opacity .12s,background .12s;box-shadow:0 0 12px currentColor}
-  .needle-cap{position:absolute;top:6px;left:50%;width:10px;height:10px;border-radius:50%;background:inherit;transform:translateX(-50%)}
+  .needle{position:absolute;top:14px;bottom:26px;left:50%;width:3px;border-radius:3px;background:var(--accent);transform:translateX(-50%);opacity:0;
+          transition:left .07s linear,opacity .12s,background .12s,width .12s,box-shadow .18s;box-shadow:0 0 12px currentColor}
+  /* locked on: you are within ~15c of the target — the needle blooms */
+  .needle.locked{width:5px;box-shadow:0 0 10px currentColor,0 0 26px currentColor,0 0 44px currentColor}
+  .needle.locked .needle-cap{transform:translateX(-50%) scale(1.35);box-shadow:0 0 16px currentColor}
+  .needle-cap{position:absolute;top:6px;left:50%;width:10px;height:10px;border-radius:50%;background:inherit;transform:translateX(-50%);transition:transform .15s,box-shadow .18s}
+  /* "pegged" state: you are further off than the +/-50c scale can show */
+  .meter.peg-low{box-shadow:inset 14px 0 22px -12px var(--bad)}
+  .meter.peg-high{box-shadow:inset -14px 0 22px -12px var(--bad)}
+  .needle.pegged{width:5px;border-radius:2px}
+  .needle.pegged::after{content:"";position:absolute;top:50%;width:0;height:0;transform:translateY(-50%)}
+  .meter.peg-low .needle.pegged::after{right:6px;border-top:7px solid transparent;border-bottom:7px solid transparent;border-right:9px solid var(--bad)}
+  .meter.peg-high .needle.pegged::after{left:6px;border-top:7px solid transparent;border-bottom:7px solid transparent;border-left:9px solid var(--bad)}
+  .peg-label{position:absolute;top:10px;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--bad);
+             background:rgba(224,104,74,0.12);border:1px solid rgba(224,104,74,0.4);border-radius:6px;padding:3px 7px;
+             max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .peg-label.hidden{display:none}
   .meter .band{position:absolute;top:14px;bottom:26px;left:calc(50% - 15%);width:30%;background:rgba(78,201,176,0.07);border-left:1px dashed rgba(78,201,176,0.25);border-right:1px dashed rgba(78,201,176,0.25)}
 
   .results{margin-top:14px}
@@ -459,6 +474,7 @@
       <div class="grid-line" style="left:80%"></div>
       <div class="center"></div>
       <div class="needle" id="needle"><span class="needle-cap"></span></div>
+      <div class="peg-label hidden" id="peg-label"></div>
       <span class="scale" style="left:8px">−50¢ flat</span>
       <span class="scale" style="right:8px">sharp +50¢</span>
     </div>
@@ -930,7 +946,7 @@
     updatePlayButtons();
   }
 
-  function resetReadout(){ targetOut.textContent="—"; noteOut.textContent="—"; centsOut.textContent="—"; needle.style.opacity="0"; }
+  function resetReadout(){ targetOut.textContent="—"; noteOut.textContent="—"; centsOut.textContent="—"; needle.style.opacity="0"; setLock(false); setPeg(null); }
 
   // ================= PIANO =================
   // Three-tier chain:
@@ -1111,6 +1127,51 @@
     return sr/T;
   }
 
+  // Single place that draws the needle, so every mode means the same thing:
+  // position = deviation from the TARGET, clamped to the +/-50c scale.
+  // When you're further off than the scale can show, the needle pegs at the edge
+  // and turns into an arrow, with a label saying how far off you actually are.
+  // Hysteresis on the "locked on" glow: engage at <=15c, only release past 20c.
+  // Without the dead-zone the glow strobes as vibrato crosses the threshold.
+  let locked=false;
+  const LOCK_ON=15, LOCK_OFF=20;
+  function drawNeedle(cents){
+    if(cents===null){ needle.style.opacity="0.25"; setLock(false); setPeg(null); return; }
+    const cl=Math.max(-50,Math.min(50,cents));
+    needle.style.left=(50+cl)+"%";
+    needle.style.opacity="1";
+    const a=Math.abs(cents);
+    const col=a<=15?"var(--good)":a<=35?"var(--ok)":"var(--bad)";
+    needle.style.background=col; needle.style.color=col;
+    if(!locked && a<=LOCK_ON) setLock(true);
+    else if(locked && a>LOCK_OFF) setLock(false);
+    setPeg(Math.abs(cents)>50 ? cents : null);
+  }
+  function setLock(on){
+    locked=on;
+    needle.classList.toggle("locked",on);
+  }
+  function setPeg(cents){
+    const m=document.getElementById("meter");
+    const lab=document.getElementById("peg-label");
+    if(!m||!lab) return;
+    if(cents===null){
+      m.classList.remove("peg-low","peg-high");
+      needle.classList.remove("pegged");
+      lab.textContent=""; lab.classList.add("hidden");
+      return;
+    }
+    const low=cents<0;
+    m.classList.toggle("peg-low",low);
+    m.classList.toggle("peg-high",!low);
+    needle.classList.add("pegged");
+    const pw=plainWords(cents);
+    lab.textContent=(low?"\u226A ":"\u226B ")+pw.txt;
+    lab.classList.remove("hidden");
+    lab.style.left = low ? "10px" : "auto";
+    lab.style.right = low ? "auto" : "10px";
+  }
+
   // Pitch detection is expensive (O(n^2) autocorrelation). Running it every animation
   // frame is wasteful — pitch doesn't change that fast. Throttle to ~30Hz.
   const DETECT_MS=33;
@@ -1130,13 +1191,9 @@
           const c=Math.round(1200*Math.log2(f/targetFreq));
           liveCents=c;
           centsOut.innerHTML=(c>0?"+":"")+c+' <small>¢</small>';
-          const cl=Math.max(-50,Math.min(50,c));
-          needle.style.left=(50+cl)+"%"; needle.style.opacity="1";
-          const a=Math.abs(c);
-          const col=a<=15?"var(--good)":a<=35?"var(--ok)":"var(--bad)";
-          needle.style.background=col; needle.style.color=col;
+          drawNeedle(c);
         }
-      } else { needle.style.opacity="0.25"; }
+      } else { drawNeedle(null); }
     }
     if(listening) raf=requestAnimationFrame(()=>detectLoop(targetFreq));
   }
@@ -1183,7 +1240,7 @@
   // ===== FOLLOW-ME PIPELINE =====
   // Continuously record (pitch, time) samples for the whole window, updating a
   // simple live meter (no single target), then segment into held notes and align.
-  function recordTake(ms){
+  function recordTake(ms,targetFreq,phraseNotes){
     return new Promise(resolve=>{
       const samples=[];           // {t, freq}
       const start=performance.now();
@@ -1207,12 +1264,24 @@
             lastVoiced=t; everVoiced=true;
             const nd=freqToNoteData(f);
             noteOut.innerHTML=nd.name+' <small>'+(nd.centsFromNearest>=0?"+":"")+nd.centsFromNearest+'¢</small>';
-            const cl=Math.max(-50,Math.min(50,nd.centsFromNearest));
-            needle.style.left=(50+cl)+"%"; needle.style.opacity="1";
-            needle.style.background="var(--accent)"; needle.style.color="var(--accent)";
+            // meter always means "how far from the target", in every mode.
+            // For a free-paced phrase there is no single target at a given moment,
+            // so reference the nearest expected tone — the needle then reads
+            // "how close are you to the note you're presumably aiming at".
+            let ref=targetFreq;
+            if(!ref && phraseNotes && phraseNotes.length){
+              let best=null,bestErr=Infinity;
+              for(const nm of phraseNotes){
+                const nf=noteToFreq(nm);
+                const e=Math.abs(1200*Math.log2(f/nf));
+                if(e<bestErr){ bestErr=e; best=nf; }
+              }
+              ref=best;
+            }
+            drawNeedle(ref ? Math.round(1200*Math.log2(f/ref)) : nd.centsFromNearest);
           } else {
             samples.push({t,freq:null});   // silence marker
-            needle.style.opacity="0.25";
+            drawNeedle(null);
           }
         }
         // early stop: only after the singer has started and then gone quiet a while
@@ -1467,7 +1536,7 @@
       stage("Sing!",{cls:"",sub:"hold the tone for at least half a second"});
       runDots(holdWin);
       listening=true;
-      const samples=await recordTake(holdWin);
+      const samples=await recordTake(holdWin, tf);
       listening=false; cancelAnimationFrame(raf); needle.style.opacity="0.25";
       hideDots(); wave.classList.remove("on");
       releaseMic();                       // free the mic so the next tone plays loud
@@ -1566,7 +1635,7 @@
       runDots(totalMs);
       clearChipHighlights();
       listening=true;
-      const samples=await recordTake(totalMs);
+      const samples=await recordTake(totalMs, null, pseq);
       listening=false; cancelAnimationFrame(raf); needle.style.opacity="0.25";
       hideDots(); releaseMic();
       const held=segmentTake(samples);
