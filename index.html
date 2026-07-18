@@ -257,6 +257,9 @@
   .results{margin-top:14px}
   .results-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
   .rcell{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:16px 12px;text-align:center}
+  .rcell.diag-row{grid-column:1/-1;text-align:left;font:12px/1.5 ui-monospace,Menlo,monospace;color:var(--muted);background:transparent;border-style:dashed}
+  .diag-toggle{display:block;margin-top:14px;font-size:12.5px;color:var(--muted);cursor:pointer}
+  .diag-toggle input{margin-right:6px}
   .rcell.good{border-color:var(--good)}.rcell.ok{border-color:var(--ok)}.rcell.bad{border-color:var(--bad)}
   .rcell .rk{font-family:var(--mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--dim)}
   .rcell .exp{font-family:var(--mono);font-size:26px;font-weight:700;margin:2px 0 12px;letter-spacing:-0.01em}
@@ -329,6 +332,7 @@
       <p>These are the musical words for small pitch differences. <span class="sharp">Sharp (♯)</span> means <em>a little too high</em>; <span class="flat">flat (♭)</span> means <em>a little too low</em>. As symbols they also name the in-between notes (the piano's black keys), like <span class="ex">F♯</span>. In singing, "you're a bit sharp" just means "you're singing slightly above the note."</p>
       <h4>Cents</h4>
       <p>A fine ruler for pitch: one semitone is divided into 100 cents, so a whole tone is 200 cents. A difference under about 15 cents is so small most ears hear it as "in tune."</p>
+      <label class="diag-toggle"><input type="checkbox" id="diag-check"> Show detection diagnostics (for troubleshooting "no sound detected")</label>
     </div>
   </details>
 
@@ -732,7 +736,11 @@
   // ("Play a tone"), which gets a roomier window than a tone inside a flowing phrase.
   function singMsFor(single){
     if(singTimeMode!=="default") return singTimeMode;
-    return single ? 2500 : 2000;
+    // Single tone gets a roomy window: the singer often draws breath after the
+    // "Sing!" cue, and a longer hold means a brief pause at the start still leaves
+    // plenty of settled tone to grade. Phrases stay tighter (2s per tone) so a
+    // multi-note take doesn't drag.
+    return single ? 3500 : 2000;
   }
 
   // ---------- recording environment (mic constraints) ----------
@@ -799,6 +807,9 @@
     beginner:"shows a whole octave, so the needle keeps moving even when you start far off",
     advanced:"±50¢ across the dial — precise, but pegs at the edge if you're further off"
   };
+  const diagCheck=$("diag-check");
+  if(diagCheck) diagCheck.addEventListener("change", ()=>{ DIAG=diagCheck.checked; });
+
   document.querySelectorAll("#ind-mode button").forEach(b=>{
     b.addEventListener("click",()=>{
       setIndicatorMode(b.dataset.m);
@@ -1194,6 +1205,43 @@
   // below E2 in a pitch exercise, so anything down there is the room, not you.
   const F_MIN=70;        // just under E2 (82Hz), the app's lowest advertised note
   const F_MAX=2000;      // well above C6 (1047Hz)
+  // Optional per-take diagnostics. When on, recordTake/captureWindow tally WHY
+  // each frame was rejected, so a "no sound" that shouldn't have happened can be
+  // explained instead of guessed at. Toggled from the "New to this?" area; off by
+  // default and invisible to normal use.
+  let DIAG=false;
+  let diagTally=null;
+  function diagReset(){ diagTally={frames:0,voiced:0,belowFloor:0,lowConf:0,outOfRange:0,
+                                   maxRms:0,maxConf:0,peakFreq:0}; }
+  function diagFrame(buf){
+    if(!DIAG||!diagTally) return;
+    const r=autoCorrelateConf(buf,ac.sampleRate);
+    diagTally.frames++;
+    if(r.rms>diagTally.maxRms) diagTally.maxRms=r.rms;
+    if(r.conf>diagTally.maxConf) diagTally.maxConf=r.conf;
+    if(r.rms<RMS_FLOOR){ diagTally.belowFloor++; return; }
+    if(r.conf<CONF_MIN){ diagTally.lowConf++; return; }
+    if(r.freq<F_MIN||r.freq>=F_MAX){ diagTally.outOfRange++; return; }
+    diagTally.voiced++;
+    if(r.freq>diagTally.peakFreq) diagTally.peakFreq=r.freq;
+  }
+  function diagSummary(){
+    if(!diagTally||!diagTally.frames) return "";
+    const t=diagTally, pct=n=>Math.round(100*n/t.frames);
+    // the single most common rejection reason is the useful headline
+    let why="voice detected";
+    if(t.voiced===0){
+      if(t.belowFloor>=t.frames*0.8) why="signal too quiet to analyse (below noise floor)";
+      else if(t.lowConf>=t.frames*0.5) why="signal not periodic enough (reads as noise, not a tone)";
+      else if(t.outOfRange>=t.frames*0.5) why="pitch outside the singing range";
+      else why="mixed: nothing held together";
+    }
+    return "diag · "+why+" · voiced "+pct(t.voiced)+"% · "+
+           "quiet "+pct(t.belowFloor)+"% · noisy "+pct(t.lowConf)+"% · "+
+           "out-of-range "+pct(t.outOfRange)+"% · peak RMS "+t.maxRms.toFixed(4)+
+           " · peak conf "+t.maxConf.toFixed(2)+
+           (t.peakFreq?" · top freq "+Math.round(t.peakFreq)+"Hz":"");
+  }
   function autoCorrelateConf(b,sr){
     let n=b.length,rms=0;
     for(let i=0;i<n;i++) rms+=b[i]*b[i];
@@ -1366,6 +1414,7 @@
     if(now-lastDetect>=DETECT_MS){
       lastDetect=now;
       analyser.getFloatTimeDomainData(buf);
+      if(DIAG) diagFrame(buf);
       const f=autoCorrelate(buf,ac.sampleRate);
       if(f>=F_MIN && f<F_MAX){
         const nd=freqToNoteData(f);
@@ -1466,6 +1515,7 @@
     tolCents=tolCents||IN_TUNE_C;
     return new Promise(resolve=>{
       liveCents=null; liveNoteData=null;
+      if(DIAG) diagReset();
       const frames=[]; const start=Date.now();
       const iv=setInterval(()=>{
         if(Date.now()-start < graceMs) return;
@@ -1490,7 +1540,7 @@
   // live before letting the caller start recording. If the mic is slow, the last
   // dot blinks and we hold rather than record into a dead stream.
   async function readyBeat(ms, micPromise){
-    stage("Get ready",{cls:"",sub:"take a breath — you sing when the dots run out"});
+    stage("Get ready",{cls:"",sub:"wait — don't sing yet · you sing when the dots run out"});
     runDots(ms, 3);
     await wait(ms);
     if(!micPromise){ hideDots(); return true; }
@@ -1521,6 +1571,7 @@
     return new Promise(resolve=>{
       const samples=[];           // {t, freq}
       const start=performance.now();
+      if(DIAG) diagReset();
       const SILENCE_STOP=2000;    // stop early after this much continuous silence
       let aborted=false;
       let lastVoiced=0, everVoiced=false, lastRun=0;
@@ -1535,6 +1586,7 @@
         if(now-lastRun>=DETECT_MS){
           lastRun=now;
           analyser.getFloatTimeDomainData(buf);
+          if(DIAG) diagFrame(buf);
           const f=autoCorrelate(buf,ac.sampleRate);
           if(f>=F_MIN && f<F_MAX){
             samples.push({t,freq:f});
@@ -1877,6 +1929,12 @@
   }
 
   // ---------- results ----------
+  function addDiagRow(text){
+    const cell=document.createElement("div");
+    cell.className="rcell diag-row";
+    cell.textContent=text;
+    resultsGrid.appendChild(cell);
+  }
   function addResult(expected,best,reason){
     const cents=best?best.cents:null;
     const sang=best?best.note.name+" "+(best.note.centsFromNearest>=0?"+":"")+best.note.centsFromNearest+"¢":"—";
@@ -1991,6 +2049,7 @@
     stepCaps[i]=cap||null;
     const fbLine=commitFeedback(seq[i],cap,reason);
     addResult(seq[i],cap,reason);
+    if(DIAG && !cap){ const d=diagSummary(); if(d) addDiagRow(d); }
 
     stepIdx++;
     if(stepIdx>=seq.length){
@@ -2068,6 +2127,7 @@
       const missReason = voiced ? "short" : "none";
       resultsGrid.innerHTML="";
       caps.forEach((c,i)=>addResult(pseq[i],c,c?null:missReason));
+      if(DIAG && caps.every(c=>!c)){ const d=diagSummary(); if(d) addDiagRow(d); }
       showScore(caps,pseq.length);
       let extra="";
       if(held.length!==pseq.length){
