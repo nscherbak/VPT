@@ -258,8 +258,14 @@
   .results-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
   .rcell{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:16px 12px;text-align:center}
   .rcell.diag-row{grid-column:1/-1;text-align:left;font:12px/1.5 ui-monospace,Menlo,monospace;color:var(--muted);background:transparent;border-style:dashed}
-  .diag-toggle{display:block;margin-top:14px;font-size:12.5px;color:var(--muted);cursor:pointer}
-  .diag-toggle input{margin-right:6px}
+  .diag-toggle{display:block;font-size:11.5px;color:var(--dim);cursor:pointer;line-height:1.45}
+  .diag-toggle input{margin-right:6px;vertical-align:middle}
+  .dev-tools{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
+  .dev-tools>summary{font-size:11px;color:var(--dim);cursor:pointer;letter-spacing:0.04em;text-transform:uppercase;list-style:none;user-select:none}
+  .dev-tools>summary::-webkit-details-marker{display:none}
+  .dev-tools>summary::before{content:"▸ ";color:var(--dim)}
+  .dev-tools[open]>summary::before{content:"▾ "}
+  .dev-tools[open]>summary{margin-bottom:8px}
   .rcell.good{border-color:var(--good)}.rcell.ok{border-color:var(--ok)}.rcell.bad{border-color:var(--bad)}
   .rcell .rk{font-family:var(--mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--dim)}
   .rcell .exp{font-family:var(--mono);font-size:26px;font-weight:700;margin:2px 0 12px;letter-spacing:-0.01em}
@@ -332,7 +338,6 @@
       <p>These are the musical words for small pitch differences. <span class="sharp">Sharp (♯)</span> means <em>a little too high</em>; <span class="flat">flat (♭)</span> means <em>a little too low</em>. As symbols they also name the in-between notes (the piano's black keys), like <span class="ex">F♯</span>. In singing, "you're a bit sharp" just means "you're singing slightly above the note."</p>
       <h4>Cents</h4>
       <p>A fine ruler for pitch: one semitone is divided into 100 cents, so a whole tone is 200 cents. A difference under about 15 cents is so small most ears hear it as "in tune."</p>
-      <label class="diag-toggle"><input type="checkbox" id="diag-check"> Show detection diagnostics (for troubleshooting "no sound detected")</label>
     </div>
   </details>
 
@@ -456,6 +461,11 @@
       </div>
       <span class="set-note" id="room-note">raw signal — most accurate pitch</span>
     </div>
+
+    <details class="dev-tools">
+      <summary>Developer tools</summary>
+      <label class="diag-toggle"><input type="checkbox" id="diag-check"> Show detection diagnostics — adds a technical line under any ungraded tone (pitch, confidence, why it wasn't scored)</label>
+    </details>
 
     </div>
   </details>
@@ -618,6 +628,26 @@
 
   // ---------- plain-words description of a deviation ----------
   // cents: signed, target-relative (positive = you sang higher than target)
+  // When the sung note falls below the lowest target (E2), regular "X tones
+  // lower than the target" feedback isn't what a singer training E2 wants — they
+  // want to know how far below E2 they landed. Stay specific for up to a whole
+  // tone below (they're close, the number helps them correct); past that, just
+  // say "more than a tone below E2", since finer detail there is neither useful
+  // nor reliable (sub-70Hz notes fit barely two cycles in the analysis window).
+  // Returns a plainWords-shaped object, or null if the note isn't below E2.
+  // reconstruct the exact sung frequency from a note-data object
+  function sungFreqOf(nd){ return nd ? midiToFreq(nd.midi + nd.centsFromNearest/100) : null; }
+  function belowFloorWords(sungFreq){
+    if(!sungFreq || sungFreq>=LOW_TARGET_HZ) return null;
+    const centsBelow=Math.round(1200*Math.log2(LOW_TARGET_HZ/sungFreq));
+    if(centsBelow<=15) return null;   // essentially at E2
+    if(centsBelow>BELOW_TONE_C)
+      return {txt:"more than a tone below E2 (the lowest note here)", tone:"bad"};
+    // within a tone: name the distance in the app's existing tone vocabulary
+    const halves=Math.round((centsBelow/200)*2)/2;
+    const label = halves<=0 ? "just under" : fmtTones(halves)+" below";
+    return {txt:label+" E2 (the lowest note here)", tone:"bad"};
+  }
   function plainWords(cents){
     const a=Math.abs(cents);
     if(a<=15) return {txt:"on pitch", tone:"good"};
@@ -1199,12 +1229,17 @@
                         // sits in the middle of that gap, not near either edge.
   const RMS_FLOOR=0.002; // true silence — below this there's nothing to analyse
                          // and the correlation is all noise anyway.
-  // Plausible sung range. The upper bound was already here; the lower one is new
-  // and matters: mains hum at 50/60Hz is highly periodic, so it scores a high
-  // confidence and would otherwise sail through as a "note". Nobody is singing
-  // below E2 in a pitch exercise, so anything down there is the room, not you.
-  const F_MIN=70;        // just under E2 (82Hz), the app's lowest advertised note
+  // Plausible sung range. The floor sits just below D2 (73Hz), a whole tone
+  // under the lowest target (E2, 82Hz). Notes in the E2→D2 band are detected so
+  // the app can tell a singer exactly how far below E2 they are; anything lower
+  // is reported as "more than a tone below" without false precision — which is
+  // also where the detector itself stops being reliable (a sub-70Hz note fits
+  // barely two cycles in the analysis window). A floor here also sits safely
+  // ABOVE mains hum (50/60Hz), so no special hum handling is needed.
+  const F_MIN=68;        // just under D2 (73Hz); above 60Hz hum
   const F_MAX=2000;      // well above C6 (1047Hz)
+  const LOW_TARGET_HZ=82.41;   // E2 — the lowest target the selector offers
+  const BELOW_TONE_C=200;      // a whole tone; beyond this we stop being specific
   // Optional per-take diagnostics. When on, recordTake/captureWindow tally WHY
   // each frame was rejected, so a "no sound" that shouldn't have happened can be
   // explained instead of guessed at. Toggled from the "New to this?" area; off by
@@ -1212,7 +1247,7 @@
   let DIAG=false;
   let diagTally=null;
   function diagReset(){ diagTally={frames:0,voiced:0,belowFloor:0,lowConf:0,outOfRange:0,
-                                   maxRms:0,maxConf:0,peakFreq:0}; }
+                                   maxRms:0,maxConf:0,peakFreq:0,oorLo:0,oorHi:0,oorMin:1e9,oorMax:0}; }
   function diagFrame(buf){
     if(!DIAG||!diagTally) return;
     const r=autoCorrelateConf(buf,ac.sampleRate);
@@ -1221,7 +1256,13 @@
     if(r.conf>diagTally.maxConf) diagTally.maxConf=r.conf;
     if(r.rms<RMS_FLOOR){ diagTally.belowFloor++; return; }
     if(r.conf<CONF_MIN){ diagTally.lowConf++; return; }
-    if(r.freq<F_MIN||r.freq>=F_MAX){ diagTally.outOfRange++; return; }
+    if(r.freq<F_MIN||r.freq>=F_MAX){
+      diagTally.outOfRange++;
+      if(r.freq<F_MIN) diagTally.oorLo++; else diagTally.oorHi++;
+      if(r.freq<diagTally.oorMin) diagTally.oorMin=r.freq;
+      if(r.freq>diagTally.oorMax) diagTally.oorMax=r.freq;
+      return;
+    }
     diagTally.voiced++;
     if(r.freq>diagTally.peakFreq) diagTally.peakFreq=r.freq;
   }
@@ -1236,11 +1277,20 @@
       else if(t.outOfRange>=t.frames*0.5) why="pitch outside the singing range";
       else why="mixed: nothing held together";
     }
+    let oor="";
+    if(t.outOfRange){
+      // show what the detector actually reported and which way it fell out of
+      // range, so an octave/sub-harmonic error is obvious
+      const side = t.oorLo && t.oorHi ? "both ends"
+                 : t.oorLo ? "too low (below "+F_MIN+"Hz)"
+                 : "too high (above "+F_MAX+"Hz)";
+      oor=" · out-of-range freqs "+Math.round(t.oorMin)+"–"+Math.round(t.oorMax)+"Hz ("+side+")";
+    }
     return "diag · "+why+" · voiced "+pct(t.voiced)+"% · "+
            "quiet "+pct(t.belowFloor)+"% · noisy "+pct(t.lowConf)+"% · "+
            "out-of-range "+pct(t.outOfRange)+"% · peak RMS "+t.maxRms.toFixed(4)+
            " · peak conf "+t.maxConf.toFixed(2)+
-           (t.peakFreq?" · top freq "+Math.round(t.peakFreq)+"Hz":"");
+           (t.peakFreq?" · top freq "+Math.round(t.peakFreq)+"Hz":"")+oor;
   }
   function autoCorrelateConf(b,sr){
     let n=b.length,rms=0;
@@ -1939,7 +1989,11 @@
     const cents=best?best.cents:null;
     const sang=best?best.note.name+" "+(best.note.centsFromNearest>=0?"+":"")+best.note.centsFromNearest+"¢":"—";
     let pw;
-    if(cents!==null) pw=plainWords(cents);
+    if(cents!==null){
+      // if the sung note fell below the lowest target, describe how far below E2
+      // rather than how far from this specific target
+      pw = belowFloorWords(sungFreqOf(best.note)) || plainWords(cents);
+    }
     else if(reason==="short") pw={txt:"tone too short — hold it a bit longer",tone:"bad"};
     else if(reason==="unsteady") pw={txt:"pitch kept moving — hold one steady tone",tone:"bad"};
     else pw={txt:"no sound detected",tone:"bad"};
@@ -1976,6 +2030,8 @@
       const nd=best.note;
       noteOut.innerHTML=nd.name+' <small>'+(nd.centsFromNearest>=0?"+":"")+nd.centsFromNearest+'¢</small>';
       centsOut.innerHTML=(best.cents>0?"+":"")+best.cents+' <small>¢</small>';
+      const below=belowFloorWords(sungFreqOf(nd));
+      if(below) return nd.name+" is "+below.txt;
       const pw=plainWords(best.cents);
       return pw.txt==="on pitch" ? "on pitch — nicely done" : nd.name+" is "+pw.txt+" than "+targetNote;
     }
