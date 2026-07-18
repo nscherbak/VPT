@@ -1,0 +1,1 @@
+Current version is 1.1 - fixed bugs with iPhone singing and No sound detection, adjusting singing window (3000-3500 ms) for a single tone
