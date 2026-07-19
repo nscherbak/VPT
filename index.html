@@ -151,6 +151,26 @@
   select,button{font-family:var(--sans);font-size:14px}
   select{background:var(--panel-2);border:1px solid var(--line);color:var(--ink);padding:9px 12px;border-radius:8px;cursor:pointer;max-height:40px}
   select:focus{outline:2px solid var(--accent);outline-offset:1px}
+  /* The main note picker is the entry point to the whole app, so give it the
+     page's accent colour and a clear custom chevron — the default arrow is easy
+     to miss against the dark panel. Native arrow removed, green one drawn in. */
+  #add-note{
+    border:1.5px solid var(--accent);
+    color:var(--ink);
+    font-weight:600;
+    padding-right:34px;
+    -webkit-appearance:none;appearance:none;
+    background-color:var(--panel-2);
+    background-image:
+      linear-gradient(45deg,transparent 50%,var(--accent) 50%),
+      linear-gradient(135deg,var(--accent) 50%,transparent 50%);
+    background-position:calc(100% - 18px) center,calc(100% - 13px) center;
+    background-size:5px 5px,5px 5px;
+    background-repeat:no-repeat;
+    box-shadow:0 0 0 3px rgba(78,201,176,0.08);
+  }
+  #add-note:hover{box-shadow:0 0 0 3px rgba(78,201,176,0.16)}
+  #add-note:focus{outline:2px solid var(--accent);outline-offset:1px}
   .btn{background:var(--panel-2);border:1px solid var(--line);color:var(--ink);padding:9px 14px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-weight:500;transition:border-color .15s,background .15s}
   .btn:hover{border-color:var(--dim)}
   .btn:active{transform:translateY(1px)}
@@ -293,6 +313,7 @@
 
   footer{margin-top:30px;padding-top:18px;border-top:1px solid var(--line);font-family:var(--mono);font-size:12px;color:var(--dim);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
   footer .credit{flex-basis:100%;font-size:11px;opacity:0.85;padding-top:6px;border-top:1px solid var(--line);margin-top:4px}
+  .version{color:var(--dim);font-family:var(--mono);font-size:0.9em}
   footer .credit a{color:var(--muted);text-decoration:underline;text-underline-offset:2px}
   footer .credit a:hover{color:var(--accent)}
 
@@ -322,7 +343,7 @@
     <div class="eyebrow">ear training · voice · intonation</div>
     <div class="title-row"><img class="app-logo" src="data:image/png;base64,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" alt="Vocal Pitch Trainer icon" width="48" height="48"><h1>Vocal Pitch <span class="accent">Trainer</span></h1></div>
     <p class="sub">Hear tones, sing them back. Build a phrase of up to nine tones — or generate a random arpeggio — then practice it and see how close you sing.</p>
-    <p class="byline">Created by <b>N. Scherbak</b> · <button class="feedback-link" id="feedback-open">send feedback</button></p>
+    <p class="byline">Created by <b>N. Scherbak</b> · <span class="version">v2.0</span> · <button class="feedback-link" id="feedback-open">send feedback</button></p>
   </header>
 
   <details class="vocab">
@@ -863,7 +884,7 @@
   let dragFrom=null;
   function renderChips(){
     chipsEl.innerHTML="";
-    if(!seq.length){ const e=document.createElement("span"); e.className="empty-seq"; e.textContent="No tones yet."; chipsEl.appendChild(e); }
+    if(!seq.length){ const e=document.createElement("span"); e.className="empty-seq"; e.textContent="Choose a note below to begin ↓"; chipsEl.appendChild(e); }
     seq.forEach((n,i)=>{
       const c=document.createElement("span");
       c.className="chip"; c.dataset.i=i;
@@ -1229,6 +1250,18 @@
                         // sits in the middle of that gap, not near either edge.
   const RMS_FLOOR=0.002; // true silence — below this there's nothing to analyse
                          // and the correlation is all noise anyway.
+  // The analysis window must hold enough pitch cycles to lock onto the
+  // fundamental. ~43ms is the sweet spot (what a 2048-sample window gives at the
+  // 48kHz phones use). Express it as a duration and convert to the nearest larger
+  // power-of-two sample count for whatever rate the device runs, so behaviour is
+  // identical at 44.1, 48, 96 or 192kHz instead of degrading at high rates.
+  const WINDOW_MS=43;
+  function fftSizeForRate(sr){
+    const want=sr*WINDOW_MS/1000;
+    let n=2048;                       // never go below the phone-proven size
+    while(n<want && n<32768) n*=2;    // Web Audio caps fftSize at 32768
+    return n;
+  }
   // Plausible sung range. The floor sits just below D2 (73Hz), a whole tone
   // under the lowest target (E2, 82Hz). Notes in the E2→D2 band are detected so
   // the app can tell a singer exactly how far below E2 they are; anything lower
@@ -1292,7 +1325,26 @@
            " · peak conf "+t.maxConf.toFixed(2)+
            (t.peakFreq?" · top freq "+Math.round(t.peakFreq)+"Hz":"")+oor;
   }
+  // Decimate by an integer factor with a crude box-average anti-alias. Used to
+  // bring high sample rates (96/192kHz) down near 48kHz before pitch analysis.
+  function decimate(b,factor){
+    if(factor<=1) return b;
+    const out=new Float32Array(Math.floor(b.length/factor));
+    for(let i=0;i<out.length;i++){ let s=0; for(let k=0;k<factor;k++) s+=b[i*factor+k]; out[i]=s/factor; }
+    return out;
+  }
   function autoCorrelateConf(b,sr){
+    // Voice pitch (≈80–1050Hz) is grossly oversampled at 96/192kHz, and all that
+    // extra bandwidth is high-frequency NOISE that creates strong short-lag
+    // correlations — which the peak search then mistakes for the fundamental,
+    // reporting a pitch many times too high. (This is the bug that hit a trained
+    // singer on a high-rate audio interface while phones at 48kHz were fine.)
+    // Bringing the rate down to ~48kHz first lowpasses that noise away and makes
+    // detection rate-independent.
+    let factor=1, esr=sr;
+    while(esr>=88200){ factor*=2; esr/=2; }
+    if(factor>1){ b=decimate(b,factor); sr=esr; }
+
     let n=b.length,rms=0;
     for(let i=0;i<n;i++) rms+=b[i]*b[i];
     rms=Math.sqrt(rms/n);
@@ -1304,9 +1356,13 @@
     let mv=-1,mp=-1;
     for(let i=d;i<n;i++){ if(c[i]>mv){ mv=c[i]; mp=i; } }
     if(mp<=0) return {freq:-1, conf:0, rms};
-    // Clarity: the peak relative to zero-lag energy. Corrected for the shrinking
-    // overlap at longer lags — without that, low notes (fewer cycles in the
-    // window) would look less certain than high ones purely as an artefact.
+    // The tallest peak can still be a harmonic under noise. Walk back to the
+    // earliest peak that's nearly as tall — the fundamental has the longest
+    // period of the strong peaks, so this avoids the octave/harmonic jump.
+    const thresh=mv*0.85;
+    for(let i=d+1;i<mp;i++){
+      if(c[i]>thresh && c[i]>c[i-1] && c[i]>=c[i+1]){ mp=i; mv=c[i]; break; }
+    }
     const overlap=n-mp;
     const conf=Math.max(0, Math.min(1, mv/(c[0]*(overlap/n))));
     let T=mp;
@@ -1896,7 +1952,18 @@
       const up=await ensureAudioCtx();
       if(!up){ micError="noaudio"; releaseMicHard(); return false; }
       const src=ac.createMediaStreamSource(micStream);
-      analyser=ac.createAnalyser(); analyser.fftSize=2048; buf=new Float32Array(analyser.fftSize);
+      analyser=ac.createAnalyser();
+      // Size the analysis window by DURATION, not a fixed sample count. A fixed
+      // 2048 samples is ~43ms at 48kHz — fine — but only ~21ms at 96kHz and
+      // ~11ms at 192kHz, which pro/USB audio interfaces commonly run. In that
+      // short a window a low-ish note has too few cycles, and the autocorrelation
+      // locks onto a harmonic instead of the fundamental: a sung C4 gets reported
+      // as ~1000Hz or bounces between wild values. (This is why the app worked on
+      // phones, which run at 48kHz, but failed on some computers.) fftSize must
+      // be a power of two, so pick the smallest one that holds at least ~43ms at
+      // whatever rate this device actually uses.
+      analyser.fftSize=fftSizeForRate(ac.sampleRate);
+      buf=new Float32Array(analyser.fftSize);
       src.connect(analyser);
       micSrc=src;
       // The stream can exist before the track is actually delivering audio (iOS is
