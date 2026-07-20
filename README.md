@@ -246,6 +246,26 @@ At the bottom of Settings, a collapsed **Developer tools** section holds diagnos
 
 It does **not** test the app — no microphone, no audio, no interface. It tells you whether an edit broke the scoring. Green means any problem you're seeing is the browser, mic, or audio rather than the maths. The page explains all of this in more detail when you open it.
 
+## Changelog
+
+### v2.1
+
+Detection, feedback, and mobile improvements. All backward-compatible; existing behaviour is preserved, with smarter defaults.
+
+- **New pitch detection (YIN).** Replaced the earlier autocorrelation detector with the YIN algorithm, which is more robust against octave errors and generally cleaner on real voices.
+- **Forgiving / Strict detection modes** (Settings → Note detection). Forgiving (default) accepts low, breathy, or slightly unsteady notes so ordinary singing registers; Strict scores only clean sustained tones, for trained voices.
+- **Below-E2 feedback.** A note sung below the lowest target (E2) is now reported by how far below it landed — "half a tone below E2", "one tone below E2", or "more than a tone below" — instead of just "no sound".
+- **Sample-rate independence.** Detection no longer degrades on audio hardware running at 96/192 kHz, and the mic signal is band-limited (~60–1400 Hz) before analysis to keep hum and high harmonics from misleading it.
+- **Improved detection robustness** overall, including handling of quiet input and better rejection of non-vocal noise.
+- **Microphone guidance** (README). Added a "Choosing a microphone" section: some headsets and call-optimised mics process the signal in ways that hide sung pitch, and an inexpensive clean mic (a phone, a plain wired earbud, a built-in laptop mic) often works far better than a pricey processing headset.
+- **Silent-mode reminder on phones.** Phones can't expose their silent/ring switch to a web page, so the app now shows a one-time notice: turn silent mode off, or use headphones (which play even in silent mode). Recording is unaffected either way.
+- **Developer tools** (Settings, collapsed): detection diagnostics, a legacy-detector toggle, and a filter-bypass toggle, for troubleshooting.
+- **Self-check** grew to 148 checks, now covering sample-rate independence, the detection modes, and below-E2 feedback.
+
+### v2.0
+
+Grading and detection overhaul: order-preserving phrase alignment, steadiness-aware scoring, confidence-based detection, the Beginner/Advanced pitch dial, and the `test.html` self-check.
+
 ## Third-party content
 
 The piano samples in `samples/piano/` are **Salamander Grand Piano V3**, recorded by Alexander Holm and packaged as MP3 by darosh (Jan Forst), used under the MIT license. They are not covered by this project's own license — see [NOTICES.md](NOTICES.md) for the full notice and attribution.
