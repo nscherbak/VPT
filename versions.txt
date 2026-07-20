@@ -1,26 +1,22 @@
->>> Current version 2.0
-Correctness fixes:
+>>> Current version 2.1
+Pitch detection adjustment
+Forgiving/Strict detection modes (new Setting)
+Sample-rate independence and the mic filter chain
+Developer tools (diagnostics, legacy detector, filter bypass)
+Silent-mode warning for phones
+The microphone-choice guidance in the README
 
-Phrase alignment (DP) — a dropped note no longer corrupts the others
-Single-tone Follow mode works (was dead code)
-Stable-window grading — a glide or wobble no longer beats an honest hold
-Gap bridging — a brief dropout no longer splits or vanishes a note
-Confidence-based detection — quiet sustained vowels register instead of "no sound"
-
-The low-note thread you drove
-
-Floor at D2 (68 Hz), above mains hum — no hum guard needed
-Below-E2 feedback: specific to a tone below ("half a tone below E2", "one tone below E2"), then "more than a tone below E2"
-
-Mic & flow
-
-Edge hang fixed (bounded startup, clear message, retry)
-Desktop mic: one permission prompt per session, not one per take
-3.5 s single-tone window; "wait — don't sing yet" cue
-
-UI
-
+>>> Version 2.0
+Fixes:
+Phrase alignment (DP) 
+Single-tone Follow mode works 
+Stable-window grading 
+Gap bridging
+Confidence-based detection
+The low-note thread
+Below-E2 feedback
+Edge hang fixed 
+UI-adjustments
 Pitch dial Beginner/Advanced (Beginner default)
-Diagnostics moved to Developer tools at the bottom of Settings
 
->>> Version 1.1 - fixed bugs with iPhone singing and No sound detection, adjusting singing window (3000-3500 ms) for a single tone
+>>> Version 1.1 - fixed bugs with iPhone singing and No sound detection, adjusting singing window for a single tone
