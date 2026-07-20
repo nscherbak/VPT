@@ -6,6 +6,28 @@ Created by **N. Scherbak**.
 
 No build step, no dependencies, no server. The app is a single self-contained HTML file that runs entirely in your browser using the Web Audio API. Nothing is uploaded; the microphone audio never leaves your device. (`test.html` next to it is a developer self-check, not part of the app — see below.)
 
+## For beginners — it works out of the box
+
+You don't need to change any settings. Every default is chosen to be beginner-friendly:
+
+- **Note detection is forgiving** — it accepts low, breathy, or slightly unsteady notes rather than insisting on a perfectly clean tone, so ordinary singing registers instead of reading as "no sound".
+- **The pitch dial is in Beginner mode** — the needle keeps moving even when you start far off, so you can tell you're getting closer rather than just seeing it pegged.
+- **Grading follows you** — sing at your own pace; the app matches the notes you actually held, in order, without holding you to a stopwatch.
+- **Timing is relaxed** — you get a roomy window to find and hold each note.
+
+Just pick a note, press Play, and sing. Everything below this is optional.
+
+**One thing to know:** if your singing reads as "no sound", it's almost always the microphone, not you — some call/meeting headsets process the signal in a way that hides the pitch. See **Choosing a microphone** below; a phone or a cheap wired earbud usually works better than a fancy headset.
+
+## For advanced singers — the Settings section
+
+Open **Settings** (collapsed by default) to tailor the app to a trained voice. The one-line summary under the header always shows your current choices. What you can change:
+
+- **Note detection: Forgiving / Strict** — Strict scores only clean, steady sustained tones and rejects breathy or unsteady singing. Use it if you have a steady low voice and want the app to hold you to a higher standard; leave it on Forgiving otherwise.
+- **Pitch dial: Beginner / Advanced** — Advanced gives a precise ±50¢ scale across the dial (a quartertone full-width) instead of compressing a whole octave onto it.
+- **Grading: Follow me / On the clock** — On the clock expects each note during a fixed timed slot, for strict practice.
+- **Singing time, playback tempo, sound, and microphone environment** — all adjustable; see the sections below.
+
 ## Layout
 
 The interface is deliberately compact, top to bottom:
@@ -81,16 +103,45 @@ A brief dropout mid-note — a breath catch, or a moment where the voice dips �
 
 Follow me works best for clear, deliberate singing with a small gap between tones. Very legato phrases can still confuse the tone-splitting, since the app can only separate tones by pitch change when there's no silence between them.
 
+## Note detection
+
+**Forgiving** (default) accepts low, breathy, or slightly unsteady notes — the app looks for a periodic signal and, in this mode, tolerates a less-than-perfect one. This suits most singers, and especially low notes (around C3 and below) where the voice is naturally less stable. **Strict** tightens the thresholds so only clean, steady sustained tones are scored; a trained voice practising precise low notes may prefer it, but it will reject breathy or wavering singing as "no sound".
+
+If a note you clearly sang reads as "no sound", Forgiving mode usually fixes it. If it doesn't, the cause is almost always the microphone rather than the app — see **Choosing a microphone** below.
+
+## Choosing a microphone
+
+This matters more than you'd expect, and it's not about cost. The app needs to see the actual *waveform* of your voice to measure its pitch. Some microphones — especially headsets and earpieces designed for calls and meetings — run the signal through built-in processing (noise reduction, voice isolation, automatic gain) that is tuned to make **speech** clear, not to preserve **pitch**. That processing can smear or scramble the low frequencies of a sung note before the audio ever reaches the browser, so a note you sang cleanly arrives as something the app correctly reads as "not a tone".
+
+The tell-tale sign: a note reads as "no sound" or a wildly wrong pitch on one device but works fine on another — a phone, for instance — with the same voice.
+
+What works well:
+
+- A phone (the built-in mics on phones handle sung pitch well)
+- Plain wired earbuds/earphones with an inline mic (inexpensive is fine)
+- A laptop's built-in microphone
+- Any basic USB or plugged-in microphone that isn't a "communications" headset
+
+What to avoid for singing practice:
+
+- Headsets and earpieces that advertise noise cancellation or "crystal-clear calls" — the same processing that helps calls hurts pitch detection
+- Bluetooth headsets used as a microphone (call mode heavily downsamples and processes the mic)
+
+You don't need anything expensive — a cheap wired earbud mic often outperforms a pricey gaming or conferencing headset here, precisely because it does less to the signal. If you must use a processing headset, try turning off its "enhancements" or "signal processing" in your operating system's sound settings, though not all of them expose that option.
+
+If you're not sure whether your mic is the problem, turn on **Show detection diagnostics** (Settings → Developer tools) and sing a note: a `best-dip` value near 0 means the mic is delivering a clean, periodic signal, while a value near 1 means the signal reaching the app has no usable pitch — a strong sign the mic is processing it.
+
 ## Recording environment
 
-**Quiet room** (default) uses your raw microphone signal, which reads pitch most accurately. **Noisy room** turns on the browser's noise suppression and automatic gain control — it reduces background noise while recording your voice, but can slightly affect pitch accuracy. Switching this re-acquires the microphone, since the setting is applied when the mic starts.
+**Quiet room** (default) uses your raw microphone signal, which reads pitch most accurately, and asks the browser to disable its echo cancellation, noise suppression, and gain control (including vendor-specific processing) so nothing alters the waveform. Note that this only controls the *browser's* processing — a microphone that processes the signal in its own hardware or in the operating system (see **Choosing a microphone**) is not affected by this setting. **Noisy room** turns the browser processing on — it reduces background noise while recording your voice, but can slightly affect pitch accuracy. Switching this re-acquires the microphone, since the setting is applied when the mic starts.
 
 ## Mobile notes
 
 The app works on phones, with a few browser-imposed limits worth knowing:
 
+- **Silent / ring mode mutes the speaker.** If the phone's hardware silent switch (iPhone) or ring/mute mode (Android) is on, the browser cannot play the reference tone through the **speaker** — you'll see the note "play" but hear nothing. **Headphones play even in silent mode**, so plugging them in is the quickest fix (and better for singing practice anyway); otherwise turn silent mode off. A web page has no way to *detect* the switch, so the app shows a one-time reminder on phones. (Your singing is still recorded fine either way — this only affects playback.)
+- **On iOS every browser is Safari underneath**, so Safari's rules apply everywhere. Audio only starts from a tap (the Play buttons handle this).
 - **The microphone requires https.** Opening `index.html` from local storage on a phone will not work — use the GitHub Pages URL. The app says so explicitly if it detects an insecure context.
-- **On iOS every browser is Safari underneath**, so Safari's rules apply everywhere. Audio only starts from a tap (the Play buttons handle this), and the physical silent switch can mute playback.
 - **On iOS the mic is released between takes**, because iOS routes playback to the quiet earpiece for as long as a mic stream is live — so the reference tone would be inaudible otherwise. That means iOS may ask about the mic more than once. On desktop the stream is held for the session and muted between takes instead, so permission is asked for once.
 - **Backgrounding the app** stops a recording in progress; the app detects this and aborts cleanly rather than grading noise. On desktop it also releases the mic, so the browser's recording indicator doesn't stay lit while you're in another tab.
 - Pitch detection runs at ~30Hz to keep CPU use reasonable on phones.
@@ -175,14 +226,23 @@ GitHub Pages serves over HTTPS, which is required for microphone access — so t
 
 ## Notes and limits
 
-- Pitch detection uses **autocorrelation**, and reports a **confidence** value alongside each reading — how periodic the signal actually is. A sung vowel scores ~0.9–1.0; room noise scores ~0.1. Readings below the confidence threshold are discarded rather than graded, which is what allows quiet singing to be read accurately instead of being written off as silence. Mains hum is genuinely periodic and scores high, so it's excluded by a separate singing-range floor (70 Hz) rather than by confidence.
+- Pitch detection uses the **YIN algorithm**, which finds the period at which the signal best repeats and is robust against the octave errors that simpler autocorrelation is prone to. It reports a **confidence** value (how cleanly the signal repeats) alongside each reading; readings below the confidence threshold are discarded rather than graded, which is what lets quiet singing be read accurately instead of written off as silence. The **Forgiving / Strict** setting adjusts that threshold. Very high input sample rates (96/192 kHz) are decimated toward 48 kHz first, and the mic is band-limited to roughly 60–1400 Hz before analysis to keep hum and high harmonics from misleading it.
+- The lowest **target** is E2 (~82 Hz), but the detector reaches a whole tone lower so it can tell you how far below E2 a flat note landed. Below that, or for genuinely aperiodic input, it reports "no sound" rather than guessing. Mains hum (50/60 Hz) sits below the detection floor.
 - **Follow me** matches your held tones to the expected sequence with an order-preserving dynamic-programming alignment, so a dropped or added note stays a local error instead of shifting every note after it. **On the clock** still uses fixed time windows, so sing at a steady pace in that mode.
 - Grading measures the pitch you **settled on**, not your closest instant: it finds the steadiest stretch of the take, reports the median deviation there, and measures steadiness separately. A slow slide through the target doesn't score as a held tone, and an initial scoop is ignored without a hard grace period.
 - Works in any modern browser. Requires microphone permission.
 
+## Developer tools
+
+At the bottom of Settings, a collapsed **Developer tools** section holds diagnostics that ordinary use never needs:
+
+- **Show detection diagnostics** — adds a technical line under each take: the detected pitch, sample rate, confidence, periodicity, harmonic profile, and why a note wasn't scored. Useful for troubleshooting a mic or a "no sound" report.
+- **Use legacy detector** — swaps YIN for the older, simpler autocorrelation detector, for comparison.
+- **Bypass audio filters** — feeds the raw mic signal to the detector, skipping the band-pass filters (takes effect the next time the mic starts).
+
 ## Self-check
 
-`test.html` sits next to `index.html` and checks the grading maths — 126 checks covering pitch detection, single-tone scoring, phrase alignment, microphone startup and the dial scale. Open it and press **Run the checks**. (Opening it from a folder rather than a URL may stop the browser reading `index.html` on its own; drag the file onto the drop box if so.)
+`test.html` sits next to `index.html` and checks the grading maths — 148 checks covering pitch detection (including sample-rate independence and forgiving/strict modes), single-tone scoring, phrase alignment, microphone startup, below-E2 feedback, and the dial scale. Open it and press **Run the checks**. (Opening it from a folder rather than a URL may stop the browser reading `index.html` on its own; drag the file onto the drop box if so.)
 
 It does **not** test the app — no microphone, no audio, no interface. It tells you whether an edit broke the scoring. Green means any problem you're seeing is the browser, mic, or audio rather than the maths. The page explains all of this in more detail when you open it.
 

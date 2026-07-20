@@ -47,6 +47,11 @@
   .modal input:focus,.modal textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
   .fb-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
   .fb-thanks{margin-top:16px;text-align:center;color:var(--accent);font-weight:600;font-size:15px}
+  .silent-note{display:flex;align-items:flex-start;gap:10px;background:rgba(224,192,74,0.10);border:1px solid rgba(224,192,74,0.35);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:13px;color:var(--ink);line-height:1.45}
+  .silent-note[hidden]{display:none}
+  .silent-note b{color:var(--ok)}
+  .silent-dismiss{flex:none;background:none;border:none;color:var(--dim);font-size:15px;cursor:pointer;line-height:1;padding:2px 4px;margin-left:auto}
+  .silent-dismiss:hover{color:var(--ink)}
   .fb-thanks[hidden]{display:none}
 
   .tabs{display:flex;gap:4px;margin:24px 0 16px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px}
@@ -483,9 +488,20 @@
       <span class="set-note" id="room-note">raw signal — most accurate pitch</span>
     </div>
 
+    <div class="set-row">
+      <div class="timing-cap">Note detection</div>
+      <div class="radioset" id="detect-mode" role="group" aria-label="Detection sensitivity">
+        <button data-detect="forgiving" class="active">Forgiving</button>
+        <button data-detect="strict">Strict</button>
+      </div>
+      <span class="set-note" id="detect-note">accepts low, breathy, or unsteady notes — best for most singers</span>
+    </div>
+
     <details class="dev-tools">
       <summary>Developer tools</summary>
       <label class="diag-toggle"><input type="checkbox" id="diag-check"> Show detection diagnostics — adds a technical line under any ungraded tone (pitch, confidence, why it wasn't scored)</label>
+      <label class="diag-toggle"><input type="checkbox" id="legacy-check"> Use legacy detector — the older, simpler pitch detection (try this if notes read as "no sound" on a computer)</label>
+      <label class="diag-toggle"><input type="checkbox" id="bypass-check"> Bypass audio filters — feed the raw mic signal to the detector (takes effect next time the mic starts)</label>
     </details>
 
     </div>
@@ -493,6 +509,11 @@
 
   <section class="panel">
     <div class="panel-label">Play &amp; sing</div>
+
+    <div class="silent-note" id="silent-note" hidden>
+      <span>📴 Can't hear the tone? Turn off your phone's <b>silent / ring mode</b>, or plug in <b>headphones</b> (they play even in silent mode).</span>
+      <button class="silent-dismiss" id="silent-dismiss" aria-label="Dismiss">✕</button>
+    </div>
 
     <div class="stage-row">
       <div class="btn-col">
@@ -633,7 +654,7 @@
   let tempo="default";         // playback tempo (playback only)
   let gradeMode="follow";      // "follow" = segment & align (default) · "clock" = fixed slots
   let room="quiet";            // "quiet" = raw mic (best pitch) · "noisy" = browser noise suppression
-  let ac=null,analyser=null,buf=null,micStream=null,micSrc=null,raf=null;
+  let ac=null,analyser=null,buf=null,micStream=null,micSrc=null,raf=null,micFilters=null;
   // Bounds on microphone startup. Every await in the startup path must be
   // bounded: a call that hangs instead of rejecting would otherwise leave the
   // app stuck on "starting the microphone…" with no error and no way back.
@@ -744,6 +765,7 @@
     if(room==="noisy") bits.push("noisy room");
     // only worth mentioning when it isn't the default
     if(indicatorMode==="advanced") bits.push("advanced dial");
+    if(!forgivingDetection) bits.push("strict detection");
     el.textContent=bits.join(" · ");
   }
 
@@ -819,6 +841,16 @@
   // permission once. iPadOS 13+ reports itself as a Mac, hence the touch check.
   const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
                  (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+  // Any touch-primary device (phones, tablets) — used to surface the silent-mode
+  // notice, since a phone's hardware mute switch silences the browser's tones and
+  // there is no web API to detect that state, so we can only warn.
+  const IS_TOUCH = IS_IOS || (navigator.maxTouchPoints > 0 && /Mobi|Android/i.test(navigator.userAgent));
+  (function setupSilentNote(){
+    const note=$("silent-note"), dismiss=$("silent-dismiss");
+    if(!note) return;
+    if(IS_TOUCH) note.hidden=false;          // show on phones/tablets only
+    if(dismiss) dismiss.addEventListener("click", ()=>{ note.hidden=true; });
+  })();
 
   // Stop feeding the mic into the graph between takes.
   //   iOS      → hard release: stop the tracks (earpiece routing forces our hand,
@@ -838,8 +870,9 @@
   // stream is the only way to apply them).
   function releaseMicHard(){
     try{ if(micSrc) micSrc.disconnect(); }catch(e){}
+    try{ if(micFilters) micFilters.forEach(f=>f.disconnect()); }catch(e){}
     try{ if(micStream) micStream.getTracks().forEach(t=>t.stop()); }catch(e){}
-    micSrc=null; micStream=null; analyser=null; buf=null;
+    micSrc=null; micFilters=null; micStream=null; analyser=null; buf=null;
   }
 
   // ---------- grading mode ----------
@@ -860,11 +893,30 @@
   };
   const diagCheck=$("diag-check");
   if(diagCheck) diagCheck.addEventListener("change", ()=>{ DIAG=diagCheck.checked; });
+  const legacyCheck=$("legacy-check");
+  if(legacyCheck) legacyCheck.addEventListener("change", ()=>{ USE_LEGACY_DETECTOR=legacyCheck.checked; });
+  const bypassCheck=$("bypass-check");
+  if(bypassCheck) bypassCheck.addEventListener("change", ()=>{ BYPASS_FILTERS=bypassCheck.checked; });
 
   document.querySelectorAll("#ind-mode button").forEach(b=>{
     b.addEventListener("click",()=>{
       setIndicatorMode(b.dataset.m);
       $("ind-note").textContent=IND_NOTE[indicatorMode];
+      updateSettingsSummary();
+    });
+  });
+
+  const DETECT_NOTE={
+    forgiving:"accepts low, breathy, or unsteady notes — best for most singers",
+    strict:"only clean, steady tones are scored — for trained voices"
+  };
+  document.querySelectorAll("#detect-mode button").forEach(b=>{
+    b.addEventListener("click",()=>{
+      if(running) return;
+      forgivingDetection = b.dataset.detect==="forgiving";
+      document.querySelectorAll("#detect-mode button").forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
+      $("detect-note").textContent=DETECT_NOTE[b.dataset.detect];
       updateSettingsSummary();
     });
   });
@@ -884,7 +936,7 @@
   let dragFrom=null;
   function renderChips(){
     chipsEl.innerHTML="";
-    if(!seq.length){ const e=document.createElement("span"); e.className="empty-seq"; e.textContent="Choose a note below to begin ↓"; chipsEl.appendChild(e); }
+    if(!seq.length){ const e=document.createElement("span"); e.className="empty-seq"; e.textContent="Select tones below  →  Add  →  Play"; chipsEl.appendChild(e); }
     seq.forEach((n,i)=>{
       const c=document.createElement("span");
       c.className="chip"; c.dataset.i=i;
@@ -1244,10 +1296,23 @@
   // or A that there was "no sound detected". Loudness was never the right
   // question: a loud noise isn't a pitch and a quiet vowel is. Periodicity is
   // the question, so measure that instead and let the caller decide.
-  const CONF_MIN=0.5;   // below this, the signal isn't periodic enough to trust.
-                        // Measured: sung vowels score >=0.90 across E2-C6 even at
-                        // very low level; pure noise tops out around 0.11. 0.5
-                        // sits in the middle of that gap, not near either edge.
+  // Detection strictness. "Forgiving" (the default) accepts marginal notes —
+  // low, breathy, or slightly unsteady singing, which is most beginners and
+  // especially low notes like C3 where the voice is naturally less stable. This
+  // is what most people want: it's better to grade a wobbly note than to say
+  // "no sound" when someone clearly sang. "Strict" tightens the thresholds for a
+  // trained, steady voice that wants only clean sustained tones scored — fewer
+  // false accepts, but it will reject breathy or unsteady singing. Toggled in
+  // Settings; forgiving by default.
+  //   YIN_THRESHOLD: how deep a periodicity dip must be to count as a pitch.
+  //   CONF_MIN: minimum confidence (1 - dip) to accept the reading.
+  // Loosening both recovers marginal low notes; measured to still reject noise
+  // (which scores near 0 either way) at the forgiving values.
+  let forgivingDetection=true;
+  function yinThreshold(){ return forgivingDetection ? 0.25 : 0.15; }
+  function confMin(){ return forgivingDetection ? 0.35 : 0.50; }
+  const CONF_MIN=0.5;   // legacy reference used by the diagnostic's frame tally;
+                        // live detection uses confMin() so the mode applies.
   const RMS_FLOOR=0.002; // true silence — below this there's nothing to analyse
                          // and the correlation is all noise anyway.
   // The analysis window must hold enough pitch cycles to lock onto the
@@ -1280,13 +1345,58 @@
   let DIAG=false;
   let diagTally=null;
   function diagReset(){ diagTally={frames:0,voiced:0,belowFloor:0,lowConf:0,outOfRange:0,
-                                   maxRms:0,maxConf:0,peakFreq:0,oorLo:0,oorHi:0,oorMin:1e9,oorMax:0}; }
-  function diagFrame(buf){
+                                   maxRms:0,maxConf:0,peakFreq:0,oorLo:0,oorHi:0,oorMin:1e9,oorMax:0,
+                                   voicedFreqs:[], sr:(ac?ac.sampleRate:0), harm:null, harmN:0,
+                                   dips:[], dipFreqs:[]}; }
+  // Goertzel: energy at a single frequency in a buffer, cheaply. Used to measure
+  // how much of the sung fundamental survives vs its harmonics — the thing that
+  // decides whether the detector locks onto the right note.
+  function goertzel(buf,sr,freq){
+    const n=buf.length, k=2*Math.cos(2*Math.PI*freq/sr);
+    let s0=0,s1=0,s2=0;
+    for(let i=0;i<n;i++){ s0=buf[i]+k*s1-s2; s2=s1; s1=s0; }
+    return Math.sqrt(Math.max(0, s1*s1+s2*s2-k*s1*s2))/n;
+  }
+  // How deep is the BEST periodicity dip in this buffer, regardless of whether it
+  // passes the detection threshold? A clean tone dips near 0; noise or an unstable
+  // pitch stays high. This distinguishes "rejected because unstable" (dip ~0.3+)
+  // from "clean tone the threshold just missed" (dip <0.15). Cheap partial YIN.
+  function bestDip(buf,sr){
+    let f=1; while(sr/f>50000) f*=2;
+    const sig=f>1?decimate(buf,f):buf, esr=sr/f, n=sig.length;
+    let mean=0; for(let i=0;i<n;i++) mean+=sig[i]; mean/=n;
+    const c=new Float32Array(n); for(let i=0;i<n;i++) c[i]=sig[i]-mean;
+    const minTau=Math.max(2,Math.floor(esr/F_MAX)), maxTau=Math.min(Math.floor(esr/F_MIN),Math.floor(n/2)-1);
+    if(maxTau<=minTau) return {dip:1,tau:0,esr};
+    const diff=new Float64Array(maxTau+1);
+    for(let tau=1;tau<=maxTau;tau++){ let s=0; for(let i=0;i<n-tau;i++){ const d=c[i]-c[i+tau]; s+=d*d; } diff[tau]=s; }
+    const cm=new Float64Array(maxTau+1); cm[0]=1; let rs=0;
+    for(let tau=1;tau<=maxTau;tau++){ rs+=diff[tau]; cm[tau]=rs>0?diff[tau]*tau/rs:1; }
+    let bt=minTau; for(let tau=minTau+1;tau<=maxTau;tau++) if(cm[tau]<cm[bt]) bt=tau;
+    return {dip:cm[bt], tau:bt, esr};
+  }
+  function diagFrame(buf,targetFreq){
     if(!DIAG||!diagTally) return;
     const r=autoCorrelateConf(buf,ac.sampleRate);
     diagTally.frames++;
     if(r.rms>diagTally.maxRms) diagTally.maxRms=r.rms;
     if(r.conf>diagTally.maxConf) diagTally.maxConf=r.conf;
+    // Record the best periodicity dip and the pitch it implies, EVERY frame,
+    // regardless of acceptance — this is what shows instability vs a clean tone.
+    if(r.rms>=RMS_FLOOR){
+      const bd=bestDip(buf,ac.sampleRate);
+      diagTally.dips.push(bd.dip);
+      if(bd.tau>0) diagTally.dipFreqs.push(bd.esr/bd.tau);
+    }
+    // Harmonic profile of the EXPECTED note: how strong is the fundamental vs
+    // harmonics 2-5, as the detector sees it (after the filter chain). Averaged
+    // across voiced frames. This is what reveals a missing/weak fundamental.
+    if(targetFreq && r.rms>=RMS_FLOOR){
+      const mags=[1,2,3,4,5].map(h=>goertzel(buf,ac.sampleRate,targetFreq*h));
+      if(!diagTally.harm) diagTally.harm=[0,0,0,0,0];
+      for(let i=0;i<5;i++) diagTally.harm[i]+=mags[i];
+      diagTally.harmN++;
+    }
     if(r.rms<RMS_FLOOR){ diagTally.belowFloor++; return; }
     if(r.conf<CONF_MIN){ diagTally.lowConf++; return; }
     if(r.freq<F_MIN||r.freq>=F_MAX){
@@ -1297,12 +1407,12 @@
       return;
     }
     diagTally.voiced++;
+    diagTally.voicedFreqs.push(r.freq);         // to report the pitch actually heard
     if(r.freq>diagTally.peakFreq) diagTally.peakFreq=r.freq;
   }
   function diagSummary(){
     if(!diagTally||!diagTally.frames) return "";
     const t=diagTally, pct=n=>Math.round(100*n/t.frames);
-    // the single most common rejection reason is the useful headline
     let why="voice detected";
     if(t.voiced===0){
       if(t.belowFloor>=t.frames*0.8) why="signal too quiet to analyse (below noise floor)";
@@ -1310,20 +1420,52 @@
       else if(t.outOfRange>=t.frames*0.5) why="pitch outside the singing range";
       else why="mixed: nothing held together";
     }
+    // The median voiced frequency is the pitch the app actually "heard" — the
+    // single most useful number when a WRONG note was detected (not just a
+    // missing one). Reporting it on every take, graded or not, is what surfaces
+    // an octave/harmonic error that otherwise grades silently as a wrong result.
+    let heard="";
+    if(t.voicedFreqs.length){
+      const s=[...t.voicedFreqs].sort((a,b)=>a-b);
+      const med=s[Math.floor(s.length/2)];
+      heard=" · heard ~"+Math.round(med)+"Hz ("+freqToNoteData(med).name+")"+
+            " · spread "+Math.round(s[0])+"–"+Math.round(s[s.length-1])+"Hz";
+    }
     let oor="";
     if(t.outOfRange){
-      // show what the detector actually reported and which way it fell out of
-      // range, so an octave/sub-harmonic error is obvious
       const side = t.oorLo && t.oorHi ? "both ends"
                  : t.oorLo ? "too low (below "+F_MIN+"Hz)"
                  : "too high (above "+F_MAX+"Hz)";
       oor=" · out-of-range freqs "+Math.round(t.oorMin)+"–"+Math.round(t.oorMax)+"Hz ("+side+")";
     }
-    return "diag · "+why+" · voiced "+pct(t.voiced)+"% · "+
-           "quiet "+pct(t.belowFloor)+"% · noisy "+pct(t.lowConf)+"% · "+
-           "out-of-range "+pct(t.outOfRange)+"% · peak RMS "+t.maxRms.toFixed(4)+
-           " · peak conf "+t.maxConf.toFixed(2)+
-           (t.peakFreq?" · top freq "+Math.round(t.peakFreq)+"Hz":"")+oor;
+    // Harmonic profile: relative strength of the expected fundamental (H1) and
+    // harmonics 2-5, normalised to the strongest. If H1 is much weaker than a
+    // harmonic, the detector has no fundamental to lock onto — that's the wrong-
+    // octave cause, and it points at the mic/processing rather than the maths.
+    let hp="";
+    if(t.harm && t.harmN){
+      const avg=t.harm.map(x=>x/t.harmN);
+      const mx=Math.max(...avg)||1;
+      const pct=avg.map(x=>Math.round(100*x/mx));
+      hp=" · harmonics H1-5 "+pct.join("/")+"% (of loudest)";
+    }
+    // Periodicity depth (how clean the best repetition is: <0.15 = clear tone,
+    // >0.35 = no real period) and stability (how much the implied pitch jumps
+    // frame to frame). Together these separate "clean tone the threshold missed"
+    // from "genuinely unstable/aperiodic signal".
+    let stab="";
+    if(t.dips.length){
+      const md=[...t.dips].sort((a,b)=>a-b)[Math.floor(t.dips.length/2)];
+      let jump="";
+      if(t.dipFreqs.length>2){
+        const s=[...t.dipFreqs].sort((a,b)=>a-b);
+        jump=", scatter "+Math.round(s[0])+"–"+Math.round(s[s.length-1])+"Hz";
+      }
+      stab=" · [best-dip "+md.toFixed(2)+" lower=cleaner"+jump+"]";
+    }
+    return "diag · "+(t.sr?Math.round(t.sr/1000)+"kHz":"")+stab+" · "+why+heard+
+           " · voiced "+pct(t.voiced)+"% · quiet "+pct(t.belowFloor)+"% · noisy "+pct(t.lowConf)+"% · "+
+           "out-of-range "+pct(t.outOfRange)+"% · peak conf "+t.maxConf.toFixed(2)+oor+hp;
   }
   // Decimate by an integer factor with a crude box-average anti-alias. Used to
   // bring high sample rates (96/192kHz) down near 48kHz before pitch analysis.
@@ -1333,21 +1475,94 @@
     for(let i=0;i<out.length;i++){ let s=0; for(let k=0;k<factor;k++) s+=b[i*factor+k]; out[i]=s/factor; }
     return out;
   }
-  function autoCorrelateConf(b,sr){
-    // Voice pitch (≈80–1050Hz) is grossly oversampled at 96/192kHz, and all that
-    // extra bandwidth is high-frequency NOISE that creates strong short-lag
-    // correlations — which the peak search then mistakes for the fundamental,
-    // reporting a pitch many times too high. (This is the bug that hit a trained
-    // singer on a high-rate audio interface while phones at 48kHz were fine.)
-    // Bringing the rate down to ~48kHz first lowpasses that noise away and makes
-    // detection rate-independent.
-    let factor=1, esr=sr;
-    while(esr>=88200){ factor*=2; esr/=2; }
-    if(factor>1){ b=decimate(b,factor); sr=esr; }
+  function yinConf(input,originalSampleRate){
+    // YIN pitch detection. Replaces raw autocorrelation peak-picking, which was
+    // prone to octave/harmonic errors — reporting a sung note several harmonics
+    // too high on some computers (a resonant, rich, or HF-noisy mic signal that
+    // phones don't produce). YIN's cumulative-mean-normalized difference function
+    // is specifically designed to suppress those errors: it looks for the period
+    // at which the signal best repeats, normalized so that shorter (harmonic)
+    // periods don't win just by being shorter. Same {freq, conf, rms} shape as
+    // before. Combined with the 60–1400Hz mic filter chain, this is the fix for
+    // wrong-pitch detection on desktop.
+    let factor=1;
+    while(originalSampleRate/factor>50000) factor*=2;   // ease very high rates toward ~48kHz
+    const signal=factor>1?decimate(input,factor):input;
+    const sampleRate=originalSampleRate/factor;
+    const n=signal.length;
 
-    let n=b.length,rms=0;
-    for(let i=0;i<n;i++) rms+=b[i]*b[i];
-    rms=Math.sqrt(rms/n);
+    // Remove DC offset — some desktop interfaces add a bias that skews the
+    // difference function.
+    let mean=0;
+    for(let i=0;i<n;i++) mean+=signal[i];
+    mean/=n;
+    const centred=new Float32Array(n);
+    let energy=0;
+    for(let i=0;i<n;i++){ const v=signal[i]-mean; centred[i]=v; energy+=v*v; }
+    const rms=Math.sqrt(energy/n);
+    if(rms<RMS_FLOOR) return {freq:-1, conf:0, rms};
+
+    // Only search periods within the supported vocal range.
+    const minTau=Math.max(2, Math.floor(sampleRate/F_MAX));
+    const maxTau=Math.min(Math.floor(sampleRate/F_MIN), Math.floor(n/2)-1);
+    if(maxTau<=minTau) return {freq:-1, conf:0, rms};
+
+    // Difference function: how unlike the signal is to itself shifted by tau.
+    const difference=new Float64Array(maxTau+1);
+    for(let tau=1;tau<=maxTau;tau++){
+      let sum=0;
+      for(let i=0;i<n-tau;i++){ const delta=centred[i]-centred[i+tau]; sum+=delta*delta; }
+      difference[tau]=sum;
+    }
+    // Cumulative mean normalization: this is the step that defeats octave errors.
+    const cmndf=new Float64Array(maxTau+1);
+    cmndf[0]=1;
+    let runningSum=0;
+    for(let tau=1;tau<=maxTau;tau++){
+      runningSum+=difference[tau];
+      cmndf[tau]=runningSum>0 ? difference[tau]*tau/runningSum : 1;
+    }
+    // First period whose dip is deep enough — the fundamental, not a harmonic.
+    const threshold=yinThreshold();
+    let tauEstimate=-1;
+    for(let tau=minTau;tau<=maxTau;tau++){
+      if(cmndf[tau]<threshold){
+        while(tau+1<=maxTau && cmndf[tau+1]<cmndf[tau]) tau++;   // descend to the local min
+        tauEstimate=tau; break;
+      }
+    }
+    // Nothing cleared the threshold: take the best dip, but reject if it's weak
+    // (that means no real pitch — noise or silence).
+    if(tauEstimate<0){
+      tauEstimate=minTau;
+      for(let tau=minTau+1;tau<=maxTau;tau++) if(cmndf[tau]<cmndf[tauEstimate]) tauEstimate=tau;
+      // reject the fallback if even the best dip is weak (noise/silence). The
+      // cutoff loosens in forgiving mode so a marginal note isn't discarded.
+      if(cmndf[tauEstimate] > (forgivingDetection?0.55:0.35)) return {freq:-1, conf:0, rms};
+    }
+    // Parabolic interpolation around the chosen dip for sub-sample precision.
+    let refinedTau=tauEstimate;
+    if(tauEstimate>minTau && tauEstimate<maxTau){
+      const left=cmndf[tauEstimate-1], centre=cmndf[tauEstimate], right=cmndf[tauEstimate+1];
+      const denom=left-2*centre+right;
+      if(Math.abs(denom)>1e-12) refinedTau+=0.5*(left-right)/denom;
+    }
+    const frequency=sampleRate/refinedTau;
+    const conf=Math.max(0, Math.min(1, 1-cmndf[tauEstimate]));
+    if(frequency<F_MIN || frequency>=F_MAX || conf<confMin()) return {freq:-1, conf, rms};
+    return {freq:frequency, conf, rms};
+  }
+  // The original detector from the version that worked on this user's desktop:
+  // plain autocorrelation, no YIN, no confidence gate beyond a simple RMS floor.
+  // Kept as a fallback so the two can be compared head-to-head on real hardware —
+  // if this detects a note that YIN rejects, the regression is in YIN, not the
+  // mic or the audio path. Switchable from Developer tools.
+  function legacyConf(input,sr){
+    // Match YIN's high-rate handling so the comparison is fair.
+    let factor=1; while(sr/factor>50000) factor*=2;
+    const b=factor>1?decimate(input,factor):input;
+    const s=sr/factor, n=b.length;
+    let rms=0; for(let i=0;i<n;i++) rms+=b[i]*b[i]; rms=Math.sqrt(rms/n);
     if(rms<RMS_FLOOR) return {freq:-1, conf:0, rms};
     const c=new Array(n).fill(0);
     for(let i=0;i<n;i++) for(let j=0;j<n-i;j++) c[i]+=b[j]*b[j+i];
@@ -1356,24 +1571,26 @@
     let mv=-1,mp=-1;
     for(let i=d;i<n;i++){ if(c[i]>mv){ mv=c[i]; mp=i; } }
     if(mp<=0) return {freq:-1, conf:0, rms};
-    // The tallest peak can still be a harmonic under noise. Walk back to the
-    // earliest peak that's nearly as tall — the fundamental has the longest
-    // period of the strong peaks, so this avoids the octave/harmonic jump.
-    const thresh=mv*0.85;
-    for(let i=d+1;i<mp;i++){
-      if(c[i]>thresh && c[i]>c[i-1] && c[i]>=c[i+1]){ mp=i; mv=c[i]; break; }
-    }
-    const overlap=n-mp;
-    const conf=Math.max(0, Math.min(1, mv/(c[0]*(overlap/n))));
     let T=mp;
     if(T>0 && T<n-1){ const x1=c[T-1],x2=c[T],x3=c[T+1],a=(x1+x3-2*x2)/2,bb=(x3-x1)/2; if(a) T-=bb/(2*a); }
     if(T<=0) return {freq:-1, conf:0, rms};
-    return {freq:sr/T, conf, rms};
+    const freq=s/T;
+    // give it a nominal confidence from peak height so the rest of the app works
+    const conf=Math.max(0, Math.min(1, mv/c[0]));
+    if(freq<F_MIN || freq>=F_MAX) return {freq:-1, conf, rms};
+    return {freq, conf, rms};
+  }
+  let USE_LEGACY_DETECTOR=false;   // Developer tools switch
+  let BYPASS_FILTERS=false;        // Developer tools switch
+  function autoCorrelateConf(input,sr){
+    return USE_LEGACY_DETECTOR ? legacyConf(input,sr) : yinConf(input,sr);
   }
   // Back-compat shape: a bare frequency, or -1 when there's nothing trustworthy.
   function autoCorrelate(b,sr){
     const r=autoCorrelateConf(b,sr);
-    return (r.freq>0 && r.conf>=CONF_MIN) ? r.freq : -1;
+    // legacy has no meaningful conf gate; only gate YIN on confidence
+    if(USE_LEGACY_DETECTOR) return r.freq>0 ? r.freq : -1;
+    return (r.freq>0 && r.conf>=confMin()) ? r.freq : -1;
   }
 
   // Single place that draws the needle, so every mode means the same thing:
@@ -1520,7 +1737,7 @@
     if(now-lastDetect>=DETECT_MS){
       lastDetect=now;
       analyser.getFloatTimeDomainData(buf);
-      if(DIAG) diagFrame(buf);
+      if(DIAG) diagFrame(buf,targetFreq);
       const f=autoCorrelate(buf,ac.sampleRate);
       if(f>=F_MIN && f<F_MAX){
         const nd=freqToNoteData(f);
@@ -1692,7 +1909,7 @@
         if(now-lastRun>=DETECT_MS){
           lastRun=now;
           analyser.getFloatTimeDomainData(buf);
-          if(DIAG) diagFrame(buf);
+          if(DIAG) diagFrame(buf,targetFreq);
           const f=autoCorrelate(buf,ac.sampleRate);
           if(f>=F_MIN && f<F_MAX){
             samples.push({t,freq:f});
@@ -1916,11 +2133,26 @@
       if(!ac) ac=new (window.AudioContext||window.webkitAudioContext)();
       // Quiet room: raw signal (best for pitch). Noisy room: let the browser clean it up.
       const useProcessing = (room==="noisy");
-      const constraints={ audio:{
-        echoCancellation: useProcessing,
-        noiseSuppression: useProcessing,
-        autoGainControl: useProcessing
-      }};
+      // The standard three constraints aren't enough on Chromium + a headset:
+      // Windows/Chrome treat a headset as a "communications" device and apply a
+      // voice DSP that preserves the spectrum but scrambles the WAVEFORM's
+      // periodicity — which is exactly what breaks pitch detection (a strong
+      // fundamental that nonetheless has no findable period). Phones don't do
+      // this. So in quiet mode we also set every vendor/experimental flag that
+      // Chromium recognises to switch that processing off. Unknown flags are
+      // ignored harmlessly by browsers that don't support them.
+      const audio = useProcessing ? {
+        echoCancellation:true, noiseSuppression:true, autoGainControl:true
+      } : {
+        echoCancellation:false, noiseSuppression:false, autoGainControl:false,
+        // Chromium goog* flags (older but still honoured on many builds)
+        googEchoCancellation:false, googNoiseSuppression:false,
+        googAutoGainControl:false, googHighpassFilter:false,
+        googTypingNoiseDetection:false, googAudioMirroring:false,
+        // ask Chromium not to treat this as a voice-call device
+        voiceIsolation:false
+      };
+      const constraints={ audio };
       // Drop any previous stream before opening a new one — two live streams on
       // the same device is what leaves the recording indicator stuck on.
       releaseMicHard();
@@ -1964,7 +2196,26 @@
       // whatever rate this device actually uses.
       analyser.fftSize=fftSizeForRate(ac.sampleRate);
       buf=new Float32Array(analyser.fftSize);
-      src.connect(analyser);
+      // Band-limit the mic signal to the range that can contain a real sung
+      // fundamental BEFORE pitch analysis. This is the load-bearing fix for wrong
+      // pitches on some computers: their mic/interface delivers strong content
+      // far above the voice (mic resonance, electrical HF noise, room hiss) that
+      // the pitch detector locks onto — reporting a note octaves too high, or
+      // scattering across the spectrum frame to frame. Phones don't do this, so
+      // they were never affected. A highpass at 60Hz kills mains hum and DC
+      // drift; a lowpass at 1400Hz sits just above the highest target (C6,
+      // ~1047Hz) and removes the misleading high harmonics and noise. The
+      // detector then only ever sees plausible vocal frequencies.
+      const hp=ac.createBiquadFilter();
+      hp.type="highpass"; hp.frequency.value=60; hp.Q.value=0.7;
+      const lp=ac.createBiquadFilter();
+      lp.type="lowpass"; lp.frequency.value=1400; lp.Q.value=0.7;
+      if(BYPASS_FILTERS){
+        src.connect(analyser); micFilters=null;   // raw signal, like the old version
+      } else {
+        src.connect(hp); hp.connect(lp); lp.connect(analyser);
+        micFilters=[hp,lp];
+      }
       micSrc=src;
       // The stream can exist before the track is actually delivering audio (iOS is
       // slow to come up after repeated release/acquire). Wait for it to go live.
@@ -2086,7 +2337,7 @@
 
   function setBusy(b){
     running=b;
-    document.querySelectorAll(".tab, .btn, #add-note, #timbre button, #sing-time button, #tempo-set button, #grade-mode button, .arp-box select, .arp-box input").forEach(el=>el.style.pointerEvents=b?"none":"");
+    document.querySelectorAll(".tab, .btn, #add-note, #timbre button, #sing-time button, #tempo-set button, #grade-mode button, #detect-mode button, .arp-box select, .arp-box input").forEach(el=>el.style.pointerEvents=b?"none":"");
     updatePlayButtons();
   }
 
@@ -2172,7 +2423,7 @@
     stepCaps[i]=cap||null;
     const fbLine=commitFeedback(seq[i],cap,reason);
     addResult(seq[i],cap,reason);
-    if(DIAG && !cap){ const d=diagSummary(); if(d) addDiagRow(d); }
+    if(DIAG){ const d=diagSummary(); if(d) addDiagRow(d); }
 
     stepIdx++;
     if(stepIdx>=seq.length){
@@ -2250,7 +2501,7 @@
       const missReason = voiced ? "short" : "none";
       resultsGrid.innerHTML="";
       caps.forEach((c,i)=>addResult(pseq[i],c,c?null:missReason));
-      if(DIAG && caps.every(c=>!c)){ const d=diagSummary(); if(d) addDiagRow(d); }
+      if(DIAG){ const d=diagSummary(); if(d) addDiagRow(d); }
       showScore(caps,pseq.length);
       let extra="";
       if(held.length!==pseq.length){
