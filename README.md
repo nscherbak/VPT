@@ -248,17 +248,20 @@ It does **not** test the app — no microphone, no audio, no interface. It tells
 
 ## Changelog
 
+### v2.2
+Layout update (Tone section)
+
 ### v2.1
 
 Detection, feedback, and mobile improvements. All backward-compatible; existing behaviour is preserved, with smarter defaults.
 
-- **New pitch detection (YIN).** Replaced the earlier autocorrelation detector with the YIN algorithm, which is more robust against octave errors and generally cleaner on real voices.
-- **Forgiving / Strict detection modes** (Settings → Note detection). Forgiving (default) accepts low, breathy, or slightly unsteady notes so ordinary singing registers; Strict scores only clean sustained tones, for trained voices.
-- **Below-E2 feedback.** A note sung below the lowest target (E2) is now reported by how far below it landed — "half a tone below E2", "one tone below E2", or "more than a tone below" — instead of just "no sound".
-- **Sample-rate independence.** Detection no longer degrades on audio hardware running at 96/192 kHz, and the mic signal is band-limited (~60–1400 Hz) before analysis to keep hum and high harmonics from misleading it.
-- **Improved detection robustness** overall, including handling of quiet input and better rejection of non-vocal noise.
+- **New pitch detection (YIN).** Replaced the earlier autocorrelation detector with the YIN algorithm.
+- **Forgiving / Strict detection modes** (Settings → Note detection). 
+- **Below-E2 feedback.** A note sung below the lowest target (E2) is now reported by how far below it landed.
+- **Sample-rate independence.** Detection no longer degrades on audio hardware running at 96/192 kHz, and the mic signal is band-limited (~60–1400 Hz) before analysis.
+- **Improved detection robustness**
 - **Microphone guidance** (README). Added a "Choosing a microphone" section: some headsets and call-optimised mics process the signal in ways that hide sung pitch, and an inexpensive clean mic (a phone, a plain wired earbud, a built-in laptop mic) often works far better than a pricey processing headset.
-- **Silent-mode reminder on phones.** Phones can't expose their silent/ring switch to a web page, so the app now shows a one-time notice: turn silent mode off, or use headphones (which play even in silent mode). Recording is unaffected either way.
+- **Silent-mode reminder on phones.**
 - **Developer tools** (Settings, collapsed): detection diagnostics, a legacy-detector toggle, and a filter-bypass toggle, for troubleshooting.
 - **Self-check** grew to 148 checks, now covering sample-rate independence, the detection modes, and below-E2 feedback.
 
