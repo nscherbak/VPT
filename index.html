@@ -25,6 +25,7 @@
   header{margin-bottom:24px}
   .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
   .title-row{display:flex;align-items:center;gap:14px}
+  .version-tag{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--dim);vertical-align:baseline;margin-left:6px}
   .app-logo{width:48px;height:48px;flex:none}
   h1{font-size:26px;font-weight:600;letter-spacing:-0.01em}
   h1 .accent{color:var(--accent)}
@@ -47,11 +48,6 @@
   .modal input:focus,.modal textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
   .fb-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
   .fb-thanks{margin-top:16px;text-align:center;color:var(--accent);font-weight:600;font-size:15px}
-  .silent-note{display:flex;align-items:flex-start;gap:10px;background:rgba(224,192,74,0.10);border:1px solid rgba(224,192,74,0.35);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:13px;color:var(--ink);line-height:1.45}
-  .silent-note[hidden]{display:none}
-  .silent-note b{color:var(--ok)}
-  .silent-dismiss{flex:none;background:none;border:none;color:var(--dim);font-size:15px;cursor:pointer;line-height:1;padding:2px 4px;margin-left:auto}
-  .silent-dismiss:hover{color:var(--ink)}
   .fb-thanks[hidden]{display:none}
 
   .tabs{display:flex;gap:4px;margin:24px 0 16px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px}
@@ -112,7 +108,8 @@
   .cap-mode{text-transform:none;letter-spacing:0;color:var(--dim);font-weight:400}
   .timing-group.disabled{opacity:0.4;pointer-events:none;filter:grayscale(0.5)}
 
-  .seq-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;min-height:34px;margin-bottom:14px}
+  .seq-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;min-height:34px;margin-bottom:14px;transition:min-height .15s,margin .15s}
+  .seq-row.empty{min-height:0;margin-bottom:0}
   /* The tones are the subject of the whole exercise — they should read as the
      most important thing on the page, not dissolve into the surrounding chrome. */
   .chip{background:var(--bg-accent,rgba(78,201,176,0.10));border:1px solid rgba(78,201,176,0.35);color:var(--accent);
@@ -142,7 +139,6 @@
     35%{transform:scale(1.07);box-shadow:0 0 0 7px rgba(78,201,176,0)}
     100%{transform:scale(1);box-shadow:0 0 0 0 rgba(78,201,176,0)}
   }
-  .seq-row{min-height:44px}
   .drag-hint{font-family:var(--mono);font-size:11px;color:var(--dim);margin:-4px 0 10px}
   .drag-hint.hidden{display:none}
   .updown-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);cursor:pointer;margin:0 0 12px;user-select:none;flex-wrap:wrap}
@@ -156,26 +152,34 @@
   select,button{font-family:var(--sans);font-size:14px}
   select{background:var(--panel-2);border:1px solid var(--line);color:var(--ink);padding:9px 12px;border-radius:8px;cursor:pointer;max-height:40px}
   select:focus{outline:2px solid var(--accent);outline-offset:1px}
-  /* The main note picker is the entry point to the whole app, so give it the
-     page's accent colour and a clear custom chevron — the default arrow is easy
-     to miss against the dark panel. Native arrow removed, green one drawn in. */
-  #add-note{
-    border:1.5px solid var(--accent);
-    color:var(--ink);
-    font-weight:600;
-    padding-right:34px;
-    -webkit-appearance:none;appearance:none;
-    background-color:var(--panel-2);
-    background-image:
-      linear-gradient(45deg,transparent 50%,var(--accent) 50%),
-      linear-gradient(135deg,var(--accent) 50%,transparent 50%);
-    background-position:calc(100% - 18px) center,calc(100% - 13px) center;
-    background-size:5px 5px,5px 5px;
-    background-repeat:no-repeat;
-    box-shadow:0 0 0 3px rgba(78,201,176,0.08);
+
+  /* The note picker keeps a persistent accent frame to point new users at it, but
+     the value inside must read as neutral/unselected — plain weight, plain color —
+     so it never looks like a tone has already been chosen. */
+  #add-note{border-color:rgba(78,201,176,0.55);font-weight:400;color:var(--muted)}
+  #add-note option{font-weight:400;color:var(--ink);background:var(--panel-2)}
+
+  /* First-run onboarding hint: the whole line breathes slowly between a dim resting
+     gray (darker than "Clear") and the same bright accent green used by "Trainer"
+     in the title — a wider swing than a muted->accent fade gives more perceptible
+     contrast, while still peaking at the app's established "important" color
+     rather than plain white body text. Single uniform color fade, no moving parts.
+     Shown only while no tones are selected yet; removed the moment one is added. */
+  .onboard-hint{
+    font-size:15px;font-weight:600;margin:0 0 10px;letter-spacing:0.01em;
+    color:var(--dim);
+    animation:hintBreathe 5s ease-in-out infinite;
   }
-  #add-note:hover{box-shadow:0 0 0 3px rgba(78,201,176,0.16)}
-  #add-note:focus{outline:2px solid var(--accent);outline-offset:1px}
+  .onboard-hint .arrow{opacity:0.6}
+  .onboard-hint.hidden{display:none}
+  @keyframes hintBreathe{
+    0%{color:var(--dim)}
+    50%{color:var(--accent)}
+    100%{color:var(--dim)}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .onboard-hint{animation:none;color:var(--muted)}
+  }
   .btn{background:var(--panel-2);border:1px solid var(--line);color:var(--ink);padding:9px 14px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-weight:500;transition:border-color .15s,background .15s}
   .btn:hover{border-color:var(--dim)}
   .btn:active{transform:translateY(1px)}
@@ -282,15 +286,6 @@
   .results{margin-top:14px}
   .results-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
   .rcell{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:16px 12px;text-align:center}
-  .rcell.diag-row{grid-column:1/-1;text-align:left;font:12px/1.5 ui-monospace,Menlo,monospace;color:var(--muted);background:transparent;border-style:dashed}
-  .diag-toggle{display:block;font-size:11.5px;color:var(--dim);cursor:pointer;line-height:1.45}
-  .diag-toggle input{margin-right:6px;vertical-align:middle}
-  .dev-tools{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
-  .dev-tools>summary{font-size:11px;color:var(--dim);cursor:pointer;letter-spacing:0.04em;text-transform:uppercase;list-style:none;user-select:none}
-  .dev-tools>summary::-webkit-details-marker{display:none}
-  .dev-tools>summary::before{content:"▸ ";color:var(--dim)}
-  .dev-tools[open]>summary::before{content:"▾ "}
-  .dev-tools[open]>summary{margin-bottom:8px}
   .rcell.good{border-color:var(--good)}.rcell.ok{border-color:var(--ok)}.rcell.bad{border-color:var(--bad)}
   .rcell .rk{font-family:var(--mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--dim)}
   .rcell .exp{font-family:var(--mono);font-size:26px;font-weight:700;margin:2px 0 12px;letter-spacing:-0.01em}
@@ -318,7 +313,6 @@
 
   footer{margin-top:30px;padding-top:18px;border-top:1px solid var(--line);font-family:var(--mono);font-size:12px;color:var(--dim);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
   footer .credit{flex-basis:100%;font-size:11px;opacity:0.85;padding-top:6px;border-top:1px solid var(--line);margin-top:4px}
-  .version{color:var(--dim);font-family:var(--mono);font-size:0.9em}
   footer .credit a{color:var(--muted);text-decoration:underline;text-underline-offset:2px}
   footer .credit a:hover{color:var(--accent)}
 
@@ -334,6 +328,8 @@
     h1{font-size:22px}
     /* comfortable touch targets on phones (44px minimum) */
     .btn,select{min-height:44px}
+    .seq-row{min-height:44px}
+    .seq-row.empty{min-height:0}
     .radioset button{min-height:40px;padding:8px 12px}
     .timbre button{min-height:40px}
     .arp-check input{width:20px;height:20px}
@@ -346,9 +342,9 @@
 <div class="wrap">
   <header>
     <div class="eyebrow">ear training · voice · intonation</div>
-    <div class="title-row"><img class="app-logo" src="data:image/png;base64,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" alt="Vocal Pitch Trainer icon" width="48" height="48"><h1>Vocal Pitch <span class="accent">Trainer</span></h1></div>
+    <div class="title-row"><img class="app-logo" src="data:image/png;base64,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" alt="Vocal Pitch Trainer icon" width="48" height="48"><h1>Vocal Pitch <span class="accent">Trainer</span><span class="version-tag">v2.2</span></h1></div>
     <p class="sub">Hear tones, sing them back. Build a phrase of up to nine tones — or generate a random arpeggio — then practice it and see how close you sing.</p>
-    <p class="byline">Created by <b>N. Scherbak</b> · <span class="version">v2.1</span> · <button class="feedback-link" id="feedback-open">send feedback</button></p>
+    <p class="byline">Created by <b>N. Scherbak</b> · <button class="feedback-link" id="feedback-open">send feedback</button></p>
   </header>
 
   <details class="vocab">
@@ -377,6 +373,8 @@
       <span class="voice-tag" id="voice-tag">E2–C6</span>
       <span class="hint" id="seq-hint">0/9</span>
     </div>
+
+    <p class="onboard-hint" id="onboard-hint">Select tones below <span class="arrow">→</span> Add <span class="arrow">→</span> Play</p>
 
     <div class="seq-row" id="seq-chips"></div>
     <p class="drag-hint hidden" id="drag-hint">Drag to reorder · × to remove</p>
@@ -459,15 +457,6 @@
       <span class="set-note" id="grade-note">sing at your own pace — hold each tone at least half a second</span>
     </div>
 
-    <div class="set-row">
-      <div class="timing-cap">Pitch dial</div>
-      <div class="radioset" id="ind-mode" role="group" aria-label="Pitch dial scale">
-        <button data-m="beginner" class="active">Beginner</button>
-        <button data-m="advanced">Advanced</button>
-      </div>
-      <span class="set-note" id="ind-note">shows a whole octave, so the needle keeps moving even when you start far off</span>
-    </div>
-
     <div class="set-row" id="singtime-group">
       <div class="timing-cap">Singing time</div>
       <div class="radioset" id="sing-time" role="group" aria-label="Singing time per tone">
@@ -488,32 +477,11 @@
       <span class="set-note" id="room-note">raw signal — most accurate pitch</span>
     </div>
 
-    <div class="set-row">
-      <div class="timing-cap">Note detection</div>
-      <div class="radioset" id="detect-mode" role="group" aria-label="Detection sensitivity">
-        <button data-detect="forgiving" class="active">Forgiving</button>
-        <button data-detect="strict">Strict</button>
-      </div>
-      <span class="set-note" id="detect-note">accepts low, breathy, or unsteady notes — best for most singers</span>
-    </div>
-
-    <details class="dev-tools">
-      <summary>Developer tools</summary>
-      <label class="diag-toggle"><input type="checkbox" id="diag-check"> Show detection diagnostics — adds a technical line under any ungraded tone (pitch, confidence, why it wasn't scored)</label>
-      <label class="diag-toggle"><input type="checkbox" id="legacy-check"> Use legacy detector — the older, simpler pitch detection (try this if notes read as "no sound" on a computer)</label>
-      <label class="diag-toggle"><input type="checkbox" id="bypass-check"> Bypass audio filters — feed the raw mic signal to the detector (takes effect next time the mic starts)</label>
-    </details>
-
     </div>
   </details>
 
   <section class="panel">
     <div class="panel-label">Play &amp; sing</div>
-
-    <div class="silent-note" id="silent-note" hidden>
-      <span>📴 Can't hear the tone? Turn off your phone's <b>silent / ring mode</b>, or plug in <b>headphones</b> (they play even in silent mode).</span>
-      <button class="silent-dismiss" id="silent-dismiss" aria-label="Dismiss">✕</button>
-    </div>
 
     <div class="stage-row">
       <div class="btn-col">
@@ -535,13 +503,13 @@
 
     <div class="meter" id="meter">
       <div class="band"></div>
-      <div class="grid-line" id="grid-lo" style="left:20%"></div>
-      <div class="grid-line" id="grid-hi" style="left:80%"></div>
+      <div class="grid-line" style="left:20%"></div>
+      <div class="grid-line" style="left:80%"></div>
       <div class="center"></div>
       <div class="needle" id="needle"><span class="needle-cap"></span></div>
       <div class="peg-label hidden" id="peg-label"></div>
-      <span class="scale" style="left:8px" id="scale-lo">−50¢ flat</span>
-      <span class="scale" style="right:8px" id="scale-hi">sharp +50¢</span>
+      <span class="scale" style="left:8px">−50¢ flat</span>
+      <span class="scale" style="right:8px">sharp +50¢</span>
     </div>
   </section>
 
@@ -654,13 +622,7 @@
   let tempo="default";         // playback tempo (playback only)
   let gradeMode="follow";      // "follow" = segment & align (default) · "clock" = fixed slots
   let room="quiet";            // "quiet" = raw mic (best pitch) · "noisy" = browser noise suppression
-  let ac=null,analyser=null,buf=null,micStream=null,micSrc=null,raf=null,micFilters=null;
-  // Bounds on microphone startup. Every await in the startup path must be
-  // bounded: a call that hangs instead of rejecting would otherwise leave the
-  // app stuck on "starting the microphone…" with no error and no way back.
-  const AC_RESUME_MS=1500;    // ac.resume() can stay pending forever on Chromium/Edge
-  const MIC_LIVE_MS=2500;     // how long to wait for the track to deliver audio
-  const MIC_START_MS=8000;    // hard ceiling on the whole startMic() call
+  let ac=null,analyser=null,buf=null,micStream=null,micSrc=null,raf=null;
   let listening=false,running=false;
   let liveCents=null,liveNoteData=null;
   let stepIdx=0, stepCaps=[];
@@ -670,26 +632,6 @@
 
   // ---------- plain-words description of a deviation ----------
   // cents: signed, target-relative (positive = you sang higher than target)
-  // When the sung note falls below the lowest target (E2), regular "X tones
-  // lower than the target" feedback isn't what a singer training E2 wants — they
-  // want to know how far below E2 they landed. Stay specific for up to a whole
-  // tone below (they're close, the number helps them correct); past that, just
-  // say "more than a tone below E2", since finer detail there is neither useful
-  // nor reliable (sub-70Hz notes fit barely two cycles in the analysis window).
-  // Returns a plainWords-shaped object, or null if the note isn't below E2.
-  // reconstruct the exact sung frequency from a note-data object
-  function sungFreqOf(nd){ return nd ? midiToFreq(nd.midi + nd.centsFromNearest/100) : null; }
-  function belowFloorWords(sungFreq){
-    if(!sungFreq || sungFreq>=LOW_TARGET_HZ) return null;
-    const centsBelow=Math.round(1200*Math.log2(LOW_TARGET_HZ/sungFreq));
-    if(centsBelow<=15) return null;   // essentially at E2
-    if(centsBelow>BELOW_TONE_C)
-      return {txt:"more than a tone below E2 (the lowest note here)", tone:"bad"};
-    // within a tone: name the distance in the app's existing tone vocabulary
-    const halves=Math.round((centsBelow/200)*2)/2;
-    const label = halves<=0 ? "just under" : fmtTones(halves)+" below";
-    return {txt:label+" E2 (the lowest note here)", tone:"bad"};
-  }
   function plainWords(cents){
     const a=Math.abs(cents);
     if(a<=15) return {txt:"on pitch", tone:"good"};
@@ -763,9 +705,6 @@
       gradeMode==="follow" ? "follow me" : "on the clock"
     ];
     if(room==="noisy") bits.push("noisy room");
-    // only worth mentioning when it isn't the default
-    if(indicatorMode==="advanced") bits.push("advanced dial");
-    if(!forgivingDetection) bits.push("strict detection");
     el.textContent=bits.join(" · ");
   }
 
@@ -809,11 +748,7 @@
   // ("Play a tone"), which gets a roomier window than a tone inside a flowing phrase.
   function singMsFor(single){
     if(singTimeMode!=="default") return singTimeMode;
-    // Single tone gets a roomy window: the singer often draws breath after the
-    // "Sing!" cue, and a longer hold means a brief pause at the start still leaves
-    // plenty of settled tone to grade. Phrases stay tighter (2s per tone) so a
-    // multi-note take doesn't drag.
-    return single ? 3500 : 2000;
+    return single ? 2500 : 2000;
   }
 
   // ---------- recording environment (mic constraints) ----------
@@ -827,52 +762,15 @@
       b.classList.add("active");
       $("room-note").textContent = room==="noisy" ? "reduces background noise; may affect pitch accuracy" : "raw signal — most accurate pitch";
       updateSettingsSummary();
-      // constraints are fixed at getUserMedia time — drop the stream entirely so
-      // the next run re-acquires the mic with the new settings (a soft release
-      // would keep the old stream, and the new choice would silently do nothing)
-      releaseMicHard();
+      // constraints are fixed at getUserMedia time — drop the stream so the next
+      // run re-acquires the mic with the new settings
+      releaseMic();
     });
   });
-  // ---------- platform ----------
-  // iOS routes output to the quiet earpiece for as long as a mic stream is live,
-  // so there we must fully stop the tracks before playing a reference tone and
-  // re-acquire afterwards. Desktop has no such routing quirk, so the stream can
-  // be held for the whole session — which also means the browser only asks for
-  // permission once. iPadOS 13+ reports itself as a Mac, hence the touch check.
-  const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                 (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
-  // Any touch-primary device (phones, tablets) — used to surface the silent-mode
-  // notice, since a phone's hardware mute switch silences the browser's tones and
-  // there is no web API to detect that state, so we can only warn.
-  const IS_TOUCH = IS_IOS || (navigator.maxTouchPoints > 0 && /Mobi|Android/i.test(navigator.userAgent));
-  (function setupSilentNote(){
-    const note=$("silent-note"), dismiss=$("silent-dismiss");
-    if(!note) return;
-    if(IS_TOUCH) note.hidden=false;          // show on phones/tablets only
-    if(dismiss) dismiss.addEventListener("click", ()=>{ note.hidden=true; });
-  })();
-
-  // Stop feeding the mic into the graph between takes.
-  //   iOS      → hard release: stop the tracks (earpiece routing forces our hand,
-  //              and the re-prompt is acceptable / expected there).
-  //   desktop  → soft release: keep the stream and just mute the track, so the
-  //              recording indicator goes quiet between takes but the permission
-  //              and the stream survive for the whole session.
   function releaseMic(){
-    if(!IS_IOS){
-      try{ if(micStream) micStream.getAudioTracks().forEach(t=>t.enabled=false); }catch(e){}
-      return;
-    }
-    releaseMicHard();
-  }
-  // Fully tear the mic down. Used on iOS between takes, and everywhere when the
-  // capture constraints change (they're fixed at getUserMedia time, so a new
-  // stream is the only way to apply them).
-  function releaseMicHard(){
     try{ if(micSrc) micSrc.disconnect(); }catch(e){}
-    try{ if(micFilters) micFilters.forEach(f=>f.disconnect()); }catch(e){}
     try{ if(micStream) micStream.getTracks().forEach(t=>t.stop()); }catch(e){}
-    micSrc=null; micFilters=null; micStream=null; analyser=null; buf=null;
+    micSrc=null; micStream=null; analyser=null; buf=null;
   }
 
   // ---------- grading mode ----------
@@ -884,43 +782,6 @@
     // singing-time only matters On the clock; fade + disable it in Follow me
     $("singtime-group").classList.toggle("disabled", gradeMode==="follow");
   }
-  // ---------- pitch dial scale ----------
-  // Presentation only: this changes where the needle sits, never what is scored.
-  // Safe to switch mid-run, so it isn't gated on `running` like the others.
-  const IND_NOTE={
-    beginner:"shows a whole octave, so the needle keeps moving even when you start far off",
-    advanced:"±50¢ across the dial — precise, but pegs at the edge if you're further off"
-  };
-  const diagCheck=$("diag-check");
-  if(diagCheck) diagCheck.addEventListener("change", ()=>{ DIAG=diagCheck.checked; });
-  const legacyCheck=$("legacy-check");
-  if(legacyCheck) legacyCheck.addEventListener("change", ()=>{ USE_LEGACY_DETECTOR=legacyCheck.checked; });
-  const bypassCheck=$("bypass-check");
-  if(bypassCheck) bypassCheck.addEventListener("change", ()=>{ BYPASS_FILTERS=bypassCheck.checked; });
-
-  document.querySelectorAll("#ind-mode button").forEach(b=>{
-    b.addEventListener("click",()=>{
-      setIndicatorMode(b.dataset.m);
-      $("ind-note").textContent=IND_NOTE[indicatorMode];
-      updateSettingsSummary();
-    });
-  });
-
-  const DETECT_NOTE={
-    forgiving:"accepts low, breathy, or unsteady notes — best for most singers",
-    strict:"only clean, steady tones are scored — for trained voices"
-  };
-  document.querySelectorAll("#detect-mode button").forEach(b=>{
-    b.addEventListener("click",()=>{
-      if(running) return;
-      forgivingDetection = b.dataset.detect==="forgiving";
-      document.querySelectorAll("#detect-mode button").forEach(x=>x.classList.remove("active"));
-      b.classList.add("active");
-      $("detect-note").textContent=DETECT_NOTE[b.dataset.detect];
-      updateSettingsSummary();
-    });
-  });
-
   document.querySelectorAll("#grade-mode button").forEach(b=>{
     b.addEventListener("click",()=>{
       if(running) return;
@@ -936,7 +797,8 @@
   let dragFrom=null;
   function renderChips(){
     chipsEl.innerHTML="";
-    if(!seq.length){ const e=document.createElement("span"); e.className="empty-seq"; e.textContent="Select tones below  →  Add  →  Play"; chipsEl.appendChild(e); }
+    chipsEl.classList.toggle("empty", seq.length===0);
+    if(!seq.length){ /* nothing rendered — the onboarding hint above covers this */ }
     seq.forEach((n,i)=>{
       const c=document.createElement("span");
       c.className="chip"; c.dataset.i=i;
@@ -985,6 +847,8 @@
     seqHint.textContent=seq.length>=9?"max (9) reached":seq.length+"/9 tones";
     const dh=document.getElementById("drag-hint");
     if(dh) dh.classList.toggle("hidden", seq.length<2);
+    const oh=document.getElementById("onboard-hint");
+    if(oh) oh.classList.toggle("hidden", seq.length>0);
     updateUpDownRow();
     updatePlayButtons();
   }
@@ -1056,11 +920,7 @@
   }
 
   // single-tone sequences always grade On the clock (segmentation needs a phrase)
-  // A single tone used to be forced into clock grading, which made the entire
-  // hold-based branch in playOne unreachable. Follow mode works fine for one
-  // tone — segmentTake/classifyHeld handle a one-note take — so honour the
-  // user's choice regardless of sequence length.
-  function effectiveGrade(){ return gradeMode; }
+  function effectiveGrade(){ return seq.length===1 ? "clock" : gradeMode; }
 
   // ---------- info stage helpers ----------
   function stage(status,{cls="muted",sub="",showWave=false}={}){
@@ -1284,313 +1144,25 @@
   }
 
   // ---------- pitch detection ----------
-  // Returns {freq, conf} where conf (0..1) is how periodic the signal actually
-  // looks — essentially how tall the autocorrelation peak is relative to the
-  // signal's own energy. A sung vowel is highly periodic and scores ~0.9-1.0;
-  // room noise has no period and scores ~0.1.
-  //
-  // Why this replaced a loudness gate: the old code rejected anything under
-  // 0.01 RMS as silence. But the detector is accurate well below that — a quiet
-  // sustained vowel at 0.004 RMS still resolves to within ~1 cent. So the gate
-  // was throwing away perfectly good pitch and telling people singing a soft U
-  // or A that there was "no sound detected". Loudness was never the right
-  // question: a loud noise isn't a pitch and a quiet vowel is. Periodicity is
-  // the question, so measure that instead and let the caller decide.
-  // Detection strictness. "Forgiving" (the default) accepts marginal notes —
-  // low, breathy, or slightly unsteady singing, which is most beginners and
-  // especially low notes like C3 where the voice is naturally less stable. This
-  // is what most people want: it's better to grade a wobbly note than to say
-  // "no sound" when someone clearly sang. "Strict" tightens the thresholds for a
-  // trained, steady voice that wants only clean sustained tones scored — fewer
-  // false accepts, but it will reject breathy or unsteady singing. Toggled in
-  // Settings; forgiving by default.
-  //   YIN_THRESHOLD: how deep a periodicity dip must be to count as a pitch.
-  //   CONF_MIN: minimum confidence (1 - dip) to accept the reading.
-  // Loosening both recovers marginal low notes; measured to still reject noise
-  // (which scores near 0 either way) at the forgiving values.
-  let forgivingDetection=true;
-  function yinThreshold(){ return forgivingDetection ? 0.25 : 0.15; }
-  function confMin(){ return forgivingDetection ? 0.35 : 0.50; }
-  const CONF_MIN=0.5;   // legacy reference used by the diagnostic's frame tally;
-                        // live detection uses confMin() so the mode applies.
-  const RMS_FLOOR=0.002; // true silence — below this there's nothing to analyse
-                         // and the correlation is all noise anyway.
-  // The analysis window must hold enough pitch cycles to lock onto the
-  // fundamental. ~43ms is the sweet spot (what a 2048-sample window gives at the
-  // 48kHz phones use). Express it as a duration and convert to the nearest larger
-  // power-of-two sample count for whatever rate the device runs, so behaviour is
-  // identical at 44.1, 48, 96 or 192kHz instead of degrading at high rates.
-  const WINDOW_MS=43;
-  function fftSizeForRate(sr){
-    const want=sr*WINDOW_MS/1000;
-    let n=2048;                       // never go below the phone-proven size
-    while(n<want && n<32768) n*=2;    // Web Audio caps fftSize at 32768
-    return n;
-  }
-  // Plausible sung range. The floor sits just below D2 (73Hz), a whole tone
-  // under the lowest target (E2, 82Hz). Notes in the E2→D2 band are detected so
-  // the app can tell a singer exactly how far below E2 they are; anything lower
-  // is reported as "more than a tone below" without false precision — which is
-  // also where the detector itself stops being reliable (a sub-70Hz note fits
-  // barely two cycles in the analysis window). A floor here also sits safely
-  // ABOVE mains hum (50/60Hz), so no special hum handling is needed.
-  const F_MIN=68;        // just under D2 (73Hz); above 60Hz hum
-  const F_MAX=2000;      // well above C6 (1047Hz)
-  const LOW_TARGET_HZ=82.41;   // E2 — the lowest target the selector offers
-  const BELOW_TONE_C=200;      // a whole tone; beyond this we stop being specific
-  // Optional per-take diagnostics. When on, recordTake/captureWindow tally WHY
-  // each frame was rejected, so a "no sound" that shouldn't have happened can be
-  // explained instead of guessed at. Toggled from the "New to this?" area; off by
-  // default and invisible to normal use.
-  let DIAG=false;
-  let diagTally=null;
-  function diagReset(){ diagTally={frames:0,voiced:0,belowFloor:0,lowConf:0,outOfRange:0,
-                                   maxRms:0,maxConf:0,peakFreq:0,oorLo:0,oorHi:0,oorMin:1e9,oorMax:0,
-                                   voicedFreqs:[], sr:(ac?ac.sampleRate:0), harm:null, harmN:0,
-                                   dips:[], dipFreqs:[]}; }
-  // Goertzel: energy at a single frequency in a buffer, cheaply. Used to measure
-  // how much of the sung fundamental survives vs its harmonics — the thing that
-  // decides whether the detector locks onto the right note.
-  function goertzel(buf,sr,freq){
-    const n=buf.length, k=2*Math.cos(2*Math.PI*freq/sr);
-    let s0=0,s1=0,s2=0;
-    for(let i=0;i<n;i++){ s0=buf[i]+k*s1-s2; s2=s1; s1=s0; }
-    return Math.sqrt(Math.max(0, s1*s1+s2*s2-k*s1*s2))/n;
-  }
-  // How deep is the BEST periodicity dip in this buffer, regardless of whether it
-  // passes the detection threshold? A clean tone dips near 0; noise or an unstable
-  // pitch stays high. This distinguishes "rejected because unstable" (dip ~0.3+)
-  // from "clean tone the threshold just missed" (dip <0.15). Cheap partial YIN.
-  function bestDip(buf,sr){
-    let f=1; while(sr/f>50000) f*=2;
-    const sig=f>1?decimate(buf,f):buf, esr=sr/f, n=sig.length;
-    let mean=0; for(let i=0;i<n;i++) mean+=sig[i]; mean/=n;
-    const c=new Float32Array(n); for(let i=0;i<n;i++) c[i]=sig[i]-mean;
-    const minTau=Math.max(2,Math.floor(esr/F_MAX)), maxTau=Math.min(Math.floor(esr/F_MIN),Math.floor(n/2)-1);
-    if(maxTau<=minTau) return {dip:1,tau:0,esr};
-    const diff=new Float64Array(maxTau+1);
-    for(let tau=1;tau<=maxTau;tau++){ let s=0; for(let i=0;i<n-tau;i++){ const d=c[i]-c[i+tau]; s+=d*d; } diff[tau]=s; }
-    const cm=new Float64Array(maxTau+1); cm[0]=1; let rs=0;
-    for(let tau=1;tau<=maxTau;tau++){ rs+=diff[tau]; cm[tau]=rs>0?diff[tau]*tau/rs:1; }
-    let bt=minTau; for(let tau=minTau+1;tau<=maxTau;tau++) if(cm[tau]<cm[bt]) bt=tau;
-    return {dip:cm[bt], tau:bt, esr};
-  }
-  function diagFrame(buf,targetFreq){
-    if(!DIAG||!diagTally) return;
-    const r=autoCorrelateConf(buf,ac.sampleRate);
-    diagTally.frames++;
-    if(r.rms>diagTally.maxRms) diagTally.maxRms=r.rms;
-    if(r.conf>diagTally.maxConf) diagTally.maxConf=r.conf;
-    // Record the best periodicity dip and the pitch it implies, EVERY frame,
-    // regardless of acceptance — this is what shows instability vs a clean tone.
-    if(r.rms>=RMS_FLOOR){
-      const bd=bestDip(buf,ac.sampleRate);
-      diagTally.dips.push(bd.dip);
-      if(bd.tau>0) diagTally.dipFreqs.push(bd.esr/bd.tau);
-    }
-    // Harmonic profile of the EXPECTED note: how strong is the fundamental vs
-    // harmonics 2-5, as the detector sees it (after the filter chain). Averaged
-    // across voiced frames. This is what reveals a missing/weak fundamental.
-    if(targetFreq && r.rms>=RMS_FLOOR){
-      const mags=[1,2,3,4,5].map(h=>goertzel(buf,ac.sampleRate,targetFreq*h));
-      if(!diagTally.harm) diagTally.harm=[0,0,0,0,0];
-      for(let i=0;i<5;i++) diagTally.harm[i]+=mags[i];
-      diagTally.harmN++;
-    }
-    if(r.rms<RMS_FLOOR){ diagTally.belowFloor++; return; }
-    if(r.conf<CONF_MIN){ diagTally.lowConf++; return; }
-    if(r.freq<F_MIN||r.freq>=F_MAX){
-      diagTally.outOfRange++;
-      if(r.freq<F_MIN) diagTally.oorLo++; else diagTally.oorHi++;
-      if(r.freq<diagTally.oorMin) diagTally.oorMin=r.freq;
-      if(r.freq>diagTally.oorMax) diagTally.oorMax=r.freq;
-      return;
-    }
-    diagTally.voiced++;
-    diagTally.voicedFreqs.push(r.freq);         // to report the pitch actually heard
-    if(r.freq>diagTally.peakFreq) diagTally.peakFreq=r.freq;
-  }
-  function diagSummary(){
-    if(!diagTally||!diagTally.frames) return "";
-    const t=diagTally, pct=n=>Math.round(100*n/t.frames);
-    let why="voice detected";
-    if(t.voiced===0){
-      if(t.belowFloor>=t.frames*0.8) why="signal too quiet to analyse (below noise floor)";
-      else if(t.lowConf>=t.frames*0.5) why="signal not periodic enough (reads as noise, not a tone)";
-      else if(t.outOfRange>=t.frames*0.5) why="pitch outside the singing range";
-      else why="mixed: nothing held together";
-    }
-    // The median voiced frequency is the pitch the app actually "heard" — the
-    // single most useful number when a WRONG note was detected (not just a
-    // missing one). Reporting it on every take, graded or not, is what surfaces
-    // an octave/harmonic error that otherwise grades silently as a wrong result.
-    let heard="";
-    if(t.voicedFreqs.length){
-      const s=[...t.voicedFreqs].sort((a,b)=>a-b);
-      const med=s[Math.floor(s.length/2)];
-      heard=" · heard ~"+Math.round(med)+"Hz ("+freqToNoteData(med).name+")"+
-            " · spread "+Math.round(s[0])+"–"+Math.round(s[s.length-1])+"Hz";
-    }
-    let oor="";
-    if(t.outOfRange){
-      const side = t.oorLo && t.oorHi ? "both ends"
-                 : t.oorLo ? "too low (below "+F_MIN+"Hz)"
-                 : "too high (above "+F_MAX+"Hz)";
-      oor=" · out-of-range freqs "+Math.round(t.oorMin)+"–"+Math.round(t.oorMax)+"Hz ("+side+")";
-    }
-    // Harmonic profile: relative strength of the expected fundamental (H1) and
-    // harmonics 2-5, normalised to the strongest. If H1 is much weaker than a
-    // harmonic, the detector has no fundamental to lock onto — that's the wrong-
-    // octave cause, and it points at the mic/processing rather than the maths.
-    let hp="";
-    if(t.harm && t.harmN){
-      const avg=t.harm.map(x=>x/t.harmN);
-      const mx=Math.max(...avg)||1;
-      const pct=avg.map(x=>Math.round(100*x/mx));
-      hp=" · harmonics H1-5 "+pct.join("/")+"% (of loudest)";
-    }
-    // Periodicity depth (how clean the best repetition is: <0.15 = clear tone,
-    // >0.35 = no real period) and stability (how much the implied pitch jumps
-    // frame to frame). Together these separate "clean tone the threshold missed"
-    // from "genuinely unstable/aperiodic signal".
-    let stab="";
-    if(t.dips.length){
-      const md=[...t.dips].sort((a,b)=>a-b)[Math.floor(t.dips.length/2)];
-      let jump="";
-      if(t.dipFreqs.length>2){
-        const s=[...t.dipFreqs].sort((a,b)=>a-b);
-        jump=", scatter "+Math.round(s[0])+"–"+Math.round(s[s.length-1])+"Hz";
-      }
-      stab=" · [best-dip "+md.toFixed(2)+" lower=cleaner"+jump+"]";
-    }
-    return "diag · "+(t.sr?Math.round(t.sr/1000)+"kHz":"")+stab+" · "+why+heard+
-           " · voiced "+pct(t.voiced)+"% · quiet "+pct(t.belowFloor)+"% · noisy "+pct(t.lowConf)+"% · "+
-           "out-of-range "+pct(t.outOfRange)+"% · peak conf "+t.maxConf.toFixed(2)+oor+hp;
-  }
-  // Decimate by an integer factor with a crude box-average anti-alias. Used to
-  // bring high sample rates (96/192kHz) down near 48kHz before pitch analysis.
-  function decimate(b,factor){
-    if(factor<=1) return b;
-    const out=new Float32Array(Math.floor(b.length/factor));
-    for(let i=0;i<out.length;i++){ let s=0; for(let k=0;k<factor;k++) s+=b[i*factor+k]; out[i]=s/factor; }
-    return out;
-  }
-  function yinConf(input,originalSampleRate){
-    // YIN pitch detection. Replaces raw autocorrelation peak-picking, which was
-    // prone to octave/harmonic errors — reporting a sung note several harmonics
-    // too high on some computers (a resonant, rich, or HF-noisy mic signal that
-    // phones don't produce). YIN's cumulative-mean-normalized difference function
-    // is specifically designed to suppress those errors: it looks for the period
-    // at which the signal best repeats, normalized so that shorter (harmonic)
-    // periods don't win just by being shorter. Same {freq, conf, rms} shape as
-    // before. Combined with the 60–1400Hz mic filter chain, this is the fix for
-    // wrong-pitch detection on desktop.
-    let factor=1;
-    while(originalSampleRate/factor>50000) factor*=2;   // ease very high rates toward ~48kHz
-    const signal=factor>1?decimate(input,factor):input;
-    const sampleRate=originalSampleRate/factor;
-    const n=signal.length;
-
-    // Remove DC offset — some desktop interfaces add a bias that skews the
-    // difference function.
-    let mean=0;
-    for(let i=0;i<n;i++) mean+=signal[i];
-    mean/=n;
-    const centred=new Float32Array(n);
-    let energy=0;
-    for(let i=0;i<n;i++){ const v=signal[i]-mean; centred[i]=v; energy+=v*v; }
-    const rms=Math.sqrt(energy/n);
-    if(rms<RMS_FLOOR) return {freq:-1, conf:0, rms};
-
-    // Only search periods within the supported vocal range.
-    const minTau=Math.max(2, Math.floor(sampleRate/F_MAX));
-    const maxTau=Math.min(Math.floor(sampleRate/F_MIN), Math.floor(n/2)-1);
-    if(maxTau<=minTau) return {freq:-1, conf:0, rms};
-
-    // Difference function: how unlike the signal is to itself shifted by tau.
-    const difference=new Float64Array(maxTau+1);
-    for(let tau=1;tau<=maxTau;tau++){
-      let sum=0;
-      for(let i=0;i<n-tau;i++){ const delta=centred[i]-centred[i+tau]; sum+=delta*delta; }
-      difference[tau]=sum;
-    }
-    // Cumulative mean normalization: this is the step that defeats octave errors.
-    const cmndf=new Float64Array(maxTau+1);
-    cmndf[0]=1;
-    let runningSum=0;
-    for(let tau=1;tau<=maxTau;tau++){
-      runningSum+=difference[tau];
-      cmndf[tau]=runningSum>0 ? difference[tau]*tau/runningSum : 1;
-    }
-    // First period whose dip is deep enough — the fundamental, not a harmonic.
-    const threshold=yinThreshold();
-    let tauEstimate=-1;
-    for(let tau=minTau;tau<=maxTau;tau++){
-      if(cmndf[tau]<threshold){
-        while(tau+1<=maxTau && cmndf[tau+1]<cmndf[tau]) tau++;   // descend to the local min
-        tauEstimate=tau; break;
-      }
-    }
-    // Nothing cleared the threshold: take the best dip, but reject if it's weak
-    // (that means no real pitch — noise or silence).
-    if(tauEstimate<0){
-      tauEstimate=minTau;
-      for(let tau=minTau+1;tau<=maxTau;tau++) if(cmndf[tau]<cmndf[tauEstimate]) tauEstimate=tau;
-      // reject the fallback if even the best dip is weak (noise/silence). The
-      // cutoff loosens in forgiving mode so a marginal note isn't discarded.
-      if(cmndf[tauEstimate] > (forgivingDetection?0.55:0.35)) return {freq:-1, conf:0, rms};
-    }
-    // Parabolic interpolation around the chosen dip for sub-sample precision.
-    let refinedTau=tauEstimate;
-    if(tauEstimate>minTau && tauEstimate<maxTau){
-      const left=cmndf[tauEstimate-1], centre=cmndf[tauEstimate], right=cmndf[tauEstimate+1];
-      const denom=left-2*centre+right;
-      if(Math.abs(denom)>1e-12) refinedTau+=0.5*(left-right)/denom;
-    }
-    const frequency=sampleRate/refinedTau;
-    const conf=Math.max(0, Math.min(1, 1-cmndf[tauEstimate]));
-    if(frequency<F_MIN || frequency>=F_MAX || conf<confMin()) return {freq:-1, conf, rms};
-    return {freq:frequency, conf, rms};
-  }
-  // The original detector from the version that worked on this user's desktop:
-  // plain autocorrelation, no YIN, no confidence gate beyond a simple RMS floor.
-  // Kept as a fallback so the two can be compared head-to-head on real hardware —
-  // if this detects a note that YIN rejects, the regression is in YIN, not the
-  // mic or the audio path. Switchable from Developer tools.
-  function legacyConf(input,sr){
-    // Match YIN's high-rate handling so the comparison is fair.
-    let factor=1; while(sr/factor>50000) factor*=2;
-    const b=factor>1?decimate(input,factor):input;
-    const s=sr/factor, n=b.length;
-    let rms=0; for(let i=0;i<n;i++) rms+=b[i]*b[i]; rms=Math.sqrt(rms/n);
-    if(rms<RMS_FLOOR) return {freq:-1, conf:0, rms};
+  function autoCorrelate(b,sr){
+    let n=b.length,rms=0;
+    for(let i=0;i<n;i++) rms+=b[i]*b[i];
+    rms=Math.sqrt(rms/n);
+    if(rms<0.01) return -1;
+    let r1=0,r2=n-1;const th=0.2;
+    for(let i=0;i<n/2;i++){ if(Math.abs(b[i])<th){ r1=i; break; } }
+    for(let i=1;i<n/2;i++){ if(Math.abs(b[n-i])<th){ r2=n-i; break; } }
+    b=b.slice(r1,r2); n=b.length;
+    if(n===0) return -1;
     const c=new Array(n).fill(0);
     for(let i=0;i<n;i++) for(let j=0;j<n-i;j++) c[i]+=b[j]*b[j+i];
-    if(c[0]<=0) return {freq:-1, conf:0, rms};
     let d=0; while(d<n-1 && c[d]>c[d+1]) d++;
     let mv=-1,mp=-1;
     for(let i=d;i<n;i++){ if(c[i]>mv){ mv=c[i]; mp=i; } }
-    if(mp<=0) return {freq:-1, conf:0, rms};
     let T=mp;
     if(T>0 && T<n-1){ const x1=c[T-1],x2=c[T],x3=c[T+1],a=(x1+x3-2*x2)/2,bb=(x3-x1)/2; if(a) T-=bb/(2*a); }
-    if(T<=0) return {freq:-1, conf:0, rms};
-    const freq=s/T;
-    // give it a nominal confidence from peak height so the rest of the app works
-    const conf=Math.max(0, Math.min(1, mv/c[0]));
-    if(freq<F_MIN || freq>=F_MAX) return {freq:-1, conf, rms};
-    return {freq, conf, rms};
-  }
-  let USE_LEGACY_DETECTOR=false;   // Developer tools switch
-  let BYPASS_FILTERS=false;        // Developer tools switch
-  function autoCorrelateConf(input,sr){
-    return USE_LEGACY_DETECTOR ? legacyConf(input,sr) : yinConf(input,sr);
-  }
-  // Back-compat shape: a bare frequency, or -1 when there's nothing trustworthy.
-  function autoCorrelate(b,sr){
-    const r=autoCorrelateConf(b,sr);
-    // legacy has no meaningful conf gate; only gate YIN on confidence
-    if(USE_LEGACY_DETECTOR) return r.freq>0 ? r.freq : -1;
-    return (r.freq>0 && r.conf>=confMin()) ? r.freq : -1;
+    if(T<=0) return -1;
+    return sr/T;
   }
 
   // Single place that draws the needle, so every mode means the same thing:
@@ -1601,98 +1173,26 @@
   // Without the dead-zone the glow strobes as vibrato crosses the threshold.
   let locked=false;
   const LOCK_ON=15, LOCK_OFF=20;
-  // What counts as "near the target" when measuring time-in-range. Matches the
-  // 15¢ the results table already treats as on-pitch.
-  const IN_TUNE_C=15;
   // Display smoothing. Raw frame-to-frame pitch jitters (vibrato, noise, detector
   // wobble) and the needle looks frantic. Smooth the DISPLAYED value only — the
   // grading always uses the raw readings, so accuracy is untouched.
   let smoothCents=null;
   const SMOOTH=0.25;            // 0 = frozen, 1 = no smoothing
-
-  // ---------- indicator scale ----------
-  // Two ways to lay the dial out. Both show the same measured deviation — this
-  // changes only where the needle SITS, never what is scored.
-  //
-  //   advanced : 1 cent = 1 percent, pegged past ±50¢. Precise, and what a
-  //              trained singer wants: full width is a quartertone.
-  //   beginner : identical out to LINEAR_C, then compressed so a whole octave
-  //              still fits on the dial.
-  //
-  // Why beginner needs it: someone who starts a fifth or an octave off sits
-  // pegged at the edge, and STAYS pegged while they hunt. Everything from -1200¢
-  // to -50¢ draws at exactly the same place, so the dial says "flat" but never
-  // "getting warmer" — the one thing it should say. With the curve, every step
-  // toward the note moves the needle.
-  //
-  // The compression is asinh, not log: log has no value at zero and would have
-  // to be special-cased around the target, which is precisely where the dial
-  // must stay honest. (Cents are ALREADY logarithmic in frequency — 100¢ is a
-  // semitone at any pitch — so this is a second, gentler compression on top.)
-  //
-  // The green zone occupies the SAME screen space in both modes: out to
-  // LINEAR_C the mapping is exactly 1:1, so ≤15¢ looks identical either way and
-  // switching modes doesn't change what "close" feels like.
-  let indicatorMode="beginner";   // "beginner" | "advanced"
-  const LINEAR_C=20;    // cents mapped 1:1 (comfortably outside the 15¢ green zone)
-  const EDGE_PCT=50;    // half-width of the dial
-  const BEG_MAX_C=1200; // one octave — the classic beginner error — reaches the edge
-  // Scale factor for the curve beyond LINEAR_C. Derived rather than chosen: the
-  // slope of asinh at the join is K/S, so setting K=S makes it exactly 1 and the
-  // curve leaves the linear zone with no visible kink. S is then whatever makes
-  // BEG_MAX_C land precisely on the edge. Solved once by bisection at startup.
-  const BEG_S=(function(){
-    const f=S=>LINEAR_C + S*Math.asinh((BEG_MAX_C-LINEAR_C)/S) - EDGE_PCT;
-    let lo=0.001, hi=1e6;
-    for(let i=0;i<200;i++){ const m=(lo+hi)/2; if(f(m)>0) hi=m; else lo=m; }
-    return (lo+hi)/2;
-  })();
-  // cents -> percent offset from centre
-  function centsToPct(c){
-    if(indicatorMode!=="beginner") return Math.max(-EDGE_PCT,Math.min(EDGE_PCT,c));
-    const a=Math.abs(c), s=c<0?-1:1;
-    if(a<=LINEAR_C) return c;
-    return s*Math.min(EDGE_PCT, LINEAR_C + BEG_S*Math.asinh((a-LINEAR_C)/BEG_S));
-  }
-  // How far off you can be before the needle pegs, in the current mode.
-  function pegLimit(){ return indicatorMode==="beginner" ? BEG_MAX_C : EDGE_PCT; }
-  // The dial's furniture has to tell the truth about the current scale, or the
-  // needle's position is unreadable. The green band is left alone deliberately:
-  // it marks ±15¢, and since both modes map that range 1:1 it is already correct
-  // in both — that is the whole point of keeping the centre linear.
-  function syncMeterScale(){
-    const beg=indicatorMode==="beginner";
-    const edge=beg?BEG_MAX_C:EDGE_PCT;      // cents at the far end of the dial
-    const mid=beg?100:30;                   // a useful intermediate marker
-    const gl=$("grid-lo"), gh=$("grid-hi"), sl=$("scale-lo"), sh=$("scale-hi");
-    if(gl) gl.style.left=(50+centsToPct(-mid))+"%";
-    if(gh) gh.style.left=(50+centsToPct(mid))+"%";
-    if(sl) sl.textContent="−"+edge+"¢ flat";
-    if(sh) sh.textContent="sharp +"+edge+"¢";
-  }
-  function setIndicatorMode(m){
-    indicatorMode = m==="advanced" ? "advanced" : "beginner";
-    document.querySelectorAll("#ind-mode button").forEach(b=>
-      b.classList.toggle("active", b.dataset.m===indicatorMode));
-    syncMeterScale();
-  }
-
   function drawNeedle(cents){
     if(cents===null){ smoothCents=null; needle.style.opacity="0.25"; setLock(false); setPeg(null); return; }
     // jump straight to big changes (a new note), ease small ones (jitter)
     if(smoothCents===null || Math.abs(cents-smoothCents)>250) smoothCents=cents;
     else smoothCents = smoothCents + (cents-smoothCents)*SMOOTH;
     const shown=Math.round(smoothCents);
-    needle.style.left=(50+centsToPct(shown))+"%";
+    const cl=Math.max(-50,Math.min(50,shown));
+    needle.style.left=(50+cl)+"%";
     needle.style.opacity="1";
     const a=Math.abs(shown);
-    // Colour still keys off the real deviation, not the drawn position — the
-    // curve must never make "badly off" look better than it is.
     const col=a<=15?"var(--good)":a<=35?"var(--ok)":"var(--bad)";
     needle.style.background=col; needle.style.color=col;
     if(!locked && a<=LOCK_ON) setLock(true);
     else if(locked && a>LOCK_OFF) setLock(false);
-    setPeg(a>pegLimit() ? shown : null);
+    setPeg(a>50 ? shown : null);
   }
   // A take just ended: dim the needle and clear any live-frame state, so a stale
   // "way off" label from mid-take can't sit next to the final result.
@@ -1737,9 +1237,8 @@
     if(now-lastDetect>=DETECT_MS){
       lastDetect=now;
       analyser.getFloatTimeDomainData(buf);
-      if(DIAG) diagFrame(buf,targetFreq);
       const f=autoCorrelate(buf,ac.sampleRate);
-      if(f>=F_MIN && f<F_MAX){
+      if(f>0 && f<2000){
         const nd=freqToNoteData(f);
         liveNoteData=nd;
         noteOut.innerHTML=nd.name+' <small>'+(nd.centsFromNearest>=0?"+":"")+nd.centsFromNearest+'¢</small>';
@@ -1754,107 +1253,16 @@
     if(listening) raf=requestAnimationFrame(()=>detectLoop(targetFreq));
   }
 
-  // ---------- representative-pitch grading ----------
-  // Grade the pitch the singer actually settled on, not their luckiest instant.
-  //
-  // The old approach kept whichever single frame came closest to the target. That
-  // rewards the wrong thing: a slow glide from flat to sharp passes *through* the
-  // target and scored a perfect 0¢, as did a wild wobble that never held any
-  // pitch at all — both beat an honest singer sitting steadily 25¢ flat. Accuracy
-  // has to be measured over a settled stretch, and steadiness has to be measured
-  // separately, or "sounds right for one 30ms frame" reads as "in tune".
-  const MIN_VOICED_FRAMES=8;   // below this there's not enough signal to judge
-  const STABLE_WIN_MS=400;     // length of the steadiest stretch we look for
-  const MAX_UNSTABLE=45;       // cents of wobble (MAD) above which nothing "settled"
-  const NEAR_C=150;            // how far from their own centre a frame can sit and
-                               // still count as part of one held tone
-  const MIN_IN_RANGE=0.5;      // fraction of settled frames that must hold together
-
-  function median(a){
-    if(!a.length) return null;
-    const s=[...a].sort((x,y)=>x-y), m=s.length>>1;
-    return s.length%2 ? s[m] : (s[m-1]+s[m])/2;
-  }
-  // median with the extreme 10% trimmed off each end — ignores a stray octave
-  // blip or a detector outlier without moving the centre for normal input
-  function trimmedMedian(a){
-    if(a.length<5) return median(a);
-    const s=[...a].sort((x,y)=>x-y), k=Math.floor(s.length*0.1);
-    return median(s.slice(k, s.length-k));
-  }
-  // median absolute deviation: spread that a couple of outliers can't inflate,
-  // unlike standard deviation. This is our "steadiness" measure.
-  function mad(a,med){ return median(a.map(v=>Math.abs(v-med))); }
-
-  // Measure a take of {cents} frames. Returns the representative deviation plus
-  // the evidence behind it, so callers can decide *and* explain.
-  function measureTake(frames, tolCents){
-    const voiced=frames.filter(f=>f.cents!==null);
-    if(!voiced.length) return {ok:false, reason:"none"};
-    if(voiced.length<MIN_VOICED_FRAMES) return {ok:false, reason:"short"};
-    const cs=voiced.map(f=>f.cents);
-    // Find the steadiest STABLE_WIN_MS stretch and treat everything from there
-    // on as the settled portion. This is what lets an initial scoop be ignored
-    // without hard-coding a grace period: the scoop simply isn't the steadiest part.
-    const w=Math.max(3, Math.round(STABLE_WIN_MS/DETECT_MS));
-    let best=null;
-    for(let i=0;i+w<=cs.length;i++){
-      const seg=cs.slice(i,i+w), m=median(seg), spread=mad(seg,m);
-      if(!best || spread<best.spread) best={i,spread};
-    }
-    const startAt=best?best.i:0;
-    const settled=cs.slice(startAt);
-    const dev=trimmedMedian(settled);
-    const stability=mad(settled, dev);          // wobble — independent of accuracy
-    // Cohesion: did the settled frames stay together as ONE tone? Measured around
-    // their own centre, deliberately not around the target — a singer holding a
-    // rock-steady note 40¢ flat has sung a real tone and must be graded as 40¢
-    // flat, not rejected as "unsteady". Accuracy is `dev`'s job alone; conflating
-    // the two here would refuse to grade exactly the people who need the number.
-    const inRange=settled.filter(c=>Math.abs(c-dev)<=NEAR_C).length/settled.length;
-    // Reported separately for Detailed grading: how much of the take was actually
-    // on target, using the strict tolerance.
-    const onTarget=settled.filter(c=>Math.abs(c)<=(tolCents||IN_TUNE_C)).length/settled.length;
-    // Which side they approached from, when there's a clear approach to report
-    const lead=cs.slice(0,startAt);
-    const from = lead.length>=3 ? (median(lead)>dev ? "above" : "below") : null;
-    return {ok:true, dev, stability, inRange, onTarget, from,
-            frames:settled.length, settledFrom:startAt, total:cs.length};
-  }
-  // Turn a measurement into a verdict. Accuracy alone isn't enough: a glide has a
-  // plausible median but huge spread, so steadiness and time-in-range both gate it.
-  function takeVerdict(m){
-    if(!m.ok) return m.reason;
-    if(m.stability>MAX_UNSTABLE) return "unsteady";
-    if(m.inRange<MIN_IN_RANGE) return "unsteady";
-    return null;                                             // null = gradeable
-  }
-
-  // Record a window and grade the settled pitch within it.
-  // graceMs is kept for callers that want a hard skip at the start; the stable-
-  // window search already ignores a scoop, so it's normally 0 now.
-  function captureWindow(ms,graceMs,targetFreq,tolCents){
+  function captureWindow(ms,graceMs){
     graceMs=graceMs||0;
-    tolCents=tolCents||IN_TUNE_C;
     return new Promise(resolve=>{
       liveCents=null; liveNoteData=null;
-      if(DIAG) diagReset();
-      const frames=[]; const start=Date.now();
+      let best=null; const start=Date.now();
       const iv=setInterval(()=>{
-        if(Date.now()-start < graceMs) return;
-        frames.push({cents: liveCents, note: liveNoteData});
-      },DETECT_MS);
-      setTimeout(()=>{
-        clearInterval(iv);
-        const m=measureTake(frames, tolCents);
-        const bad=takeVerdict(m);
-        if(bad){ resolve({cap:null, reason:bad, detail:m.ok?m:null}); return; }
-        // report the representative pitch, not any single frame
-        const cap={ cents:Math.round(m.dev),
-                    note: targetFreq ? freqToNoteData(targetFreq*Math.pow(2,m.dev/1200))
-                                     : (frames.filter(f=>f.note).slice(-1)[0]||{}).note || null };
-        resolve({cap, reason:null, detail:m});
-      },ms);
+        if(Date.now()-start < graceMs) return; // ignore the first moment (breath / scoop into note)
+        if(liveCents!==null){ if(best===null || Math.abs(liveCents)<Math.abs(best.cents)) best={cents:liveCents,note:liveNoteData}; }
+      },70);
+      setTimeout(()=>{ clearInterval(iv); resolve(best); },ms);
     });
   }
 
@@ -1863,19 +1271,16 @@
   // live before letting the caller start recording. If the mic is slow, the last
   // dot blinks and we hold rather than record into a dead stream.
   async function readyBeat(ms, micPromise){
-    stage("Get ready",{cls:"",sub:"wait — don't sing yet · you sing when the dots run out"});
+    stage("Get ready",{cls:"",sub:"take a breath — you sing when the dots run out"});
     runDots(ms, 3);
     await wait(ms);
     if(!micPromise){ hideDots(); return true; }
-    // mic should be up by now; if not, blink the last dot and keep waiting.
-    // startMic() is itself bounded (MIC_START_MS), so this await always settles —
-    // but it's raced against a ceiling anyway so a future unbounded path here
-    // can't silently reintroduce the "stuck on starting the microphone…" hang.
+    // mic should be up by now; if not, blink the last dot and keep waiting
     let ok=await Promise.race([micPromise, wait(0).then(()=>"pending")]);
     if(ok==="pending"){
       blinkLastDot(true);
       stage("Get ready",{cls:"",sub:"starting the microphone…"});
-      ok=await withTimeout(micPromise, MIC_START_MS+500, false);
+      ok=await micPromise;
       blinkLastDot(false);
     }
     hideDots();
@@ -1894,7 +1299,6 @@
     return new Promise(resolve=>{
       const samples=[];           // {t, freq}
       const start=performance.now();
-      if(DIAG) diagReset();
       const SILENCE_STOP=2000;    // stop early after this much continuous silence
       let aborted=false;
       let lastVoiced=0, everVoiced=false, lastRun=0;
@@ -1909,9 +1313,8 @@
         if(now-lastRun>=DETECT_MS){
           lastRun=now;
           analyser.getFloatTimeDomainData(buf);
-          if(DIAG) diagFrame(buf,targetFreq);
           const f=autoCorrelate(buf,ac.sampleRate);
-          if(f>=F_MIN && f<F_MAX){
+          if(f>0 && f<2000){
             samples.push({t,freq:f});
             lastVoiced=t; everVoiced=true;
             const nd=freqToNoteData(f);
@@ -1950,18 +1353,9 @@
   const SEG_TOL=60;        // cents tolerance to stay "the same note"
   const MIN_HOLD=500;      // ms a pitch must be held to count (lowered from 1000 for beginners)
   const HOLD_SLACK=100;    // allow ~0.5s holds that fall just short due to frame timing
-  // How long the detector can lose the voice before we call it a real pause.
-  // The detector drops frames for ordinary reasons mid-vowel — a consonant, a
-  // breath catch, a moment under the loudness gate — and a single dropped frame
-  // is 33ms. Ending a note on one of those used to split one sung tone into two
-  // halves; when both halves then fell under MIN_HOLD, the note vanished from
-  // the results entirely and was reported as never sung. Anything under this is
-  // treated as a dropout in one continuous tone; anything longer is a pause.
-  const GAP_BRIDGE_MS=150;
   function segmentTake(samples){
     const held=[];
     let run=[];             // current run of voiced samples near one pitch
-    let pending=[];         // unvoiced frames we haven't yet judged: dropout or pause?
     const cents=(a,b)=>1200*Math.log2(a/b);
     function centerFreq(r){ // median freq of a run
       const fs=r.map(s=>s.freq).sort((x,y)=>x-y);
@@ -1975,28 +1369,11 @@
           held.push({freq:cf, start:run[0].t, dur});
         }
       }
-      run=[]; pending=[];
+      run=[];
     }
     for(const s of samples){
-      if(s.freq===null){
-        // Don't decide yet. A gap only means something once we see whether the
-        // voice comes back, how long it was away, and on what pitch.
-        if(run.length) pending.push(s);
-        continue;
-      }
-      if(run.length===0){ run=[s]; pending=[]; continue; }
-      if(pending.length){
-        const gapMs=s.t-pending[0].t;
-        const sameNote=Math.abs(cents(s.freq, centerFreq(run)))<=SEG_TOL;
-        // Forgive the gap only if it was brief AND the voice came back on the
-        // same pitch. A long silence is a real pause; a different pitch means a
-        // new note however brief the gap — neither is a dropout.
-        if(gapMs<=GAP_BRIDGE_MS && sameNote){
-          pending=[];
-        } else {
-          flush(); run=[s]; continue;
-        }
-      }
+      if(s.freq===null){ flush(); continue; }        // silence breaks a run
+      if(run.length===0){ run=[s]; continue; }
       const c=centerFreq(run);
       if(Math.abs(cents(s.freq,c))<=SEG_TOL){ run.push(s); }
       else { flush(); run=[s]; }                      // pitch jumped → new note
@@ -2005,66 +1382,30 @@
     return held;               // ordered list of held notes actually sung
   }
 
-  // Align sung held-notes to the expected sequence.
-  //
-  // This is an order-preserving (monotonic) alignment solved with dynamic
-  // programming — the same shape as a Needleman-Wunsch / DTW alignment. Three
-  // moves are allowed at each step:
-  //   match  — pair expected[i] with held[j], cost = |cents error|
-  //   skip-e — the singer left this expected tone out          (cost SKIP_COST)
-  //   skip-h — the singer sang an extra tone that isn't in the phrase (cost SKIP_COST)
-  // and we take the cheapest total path.
-  //
-  // Why not greedy: a greedy pass has to commit to a pairing before it can see
-  // whether that choice strands a later tone. When the singer drops a note, a
-  // greedy walk slides every remaining tone one slot over, so a correctly sung
-  // tone gets graded against the wrong target and reads as wildly out of tune.
-  // The DP considers the whole phrase at once, so a dropped or added tone stays
-  // a local "—" instead of corrupting its neighbours.
-  //
-  // MATCH_TOL caps how far a pairing can stretch: past this the two tones are
-  // treated as unrelated events rather than a very bad attempt at each other.
-  // It sits above a whole tone (200¢) so that a phrase sung uniformly
-  // transposed still reports its true offset rather than scoring as all-missing.
-  // SKIP_COST is the price of leaving something unpaired — set equal to
-  // MATCH_TOL so a pairing is preferred exactly while it's within tolerance.
-  const MATCH_TOL=250;   // cents; beyond this, don't call it a match at all
-  const SKIP_COST=250;   // cents-equivalent penalty for an unpaired tone
+  // Align sung held-notes to the expected sequence. Count-aware:
+  // if counts match, 1-to-1 in order; otherwise map each expected note to the
+  // nearest-in-order held note (monotonic greedy), leaving unmatched as null.
   function alignHeld(expected, held){
-    const N=expected.length, M=held.length;
-    const out=new Array(N).fill(null);
-    if(M===0 || N===0) return out;
-
-    const tf=expected.map(noteToFreq);
-    const err=(i,j)=>Math.abs(1200*Math.log2(held[j].freq/tf[i]));
-
-    // D[i][j] = cheapest cost to align the first i expected against first j held.
-    // B[i][j] = the move that achieved it, for the traceback.
-    const D=[], B=[];
-    for(let i=0;i<=N;i++){ D.push(new Array(M+1).fill(Infinity)); B.push(new Array(M+1).fill(null)); }
-    D[0][0]=0;
-    for(let j=1;j<=M;j++){ D[0][j]=D[0][j-1]+SKIP_COST; B[0][j]="h"; }
-    for(let i=1;i<=N;i++){
-      D[i][0]=D[i-1][0]+SKIP_COST; B[i][0]="e";
-      for(let j=1;j<=M;j++){
-        let best=D[i-1][j]+SKIP_COST, op="e";      // expected tone not sung
-        const skipH=D[i][j-1]+SKIP_COST;           // extra sung tone
-        if(skipH<best){ best=skipH; op="h"; }
-        const e=err(i-1,j-1);
-        if(e<=MATCH_TOL){
-          const m=D[i-1][j-1]+e;                   // pair them up
-          if(m<best){ best=m; op="m"; }
-        }
-        D[i][j]=best; B[i][j]=op;
-      }
+    const out=new Array(expected.length).fill(null);
+    if(held.length===0) return out;
+    if(held.length===expected.length){
+      for(let i=0;i<expected.length;i++) out[i]=held[i];
+      return out;
     }
-    // walk the cheapest path back, recording only the matches
-    let i=N,j=M;
-    while(i>0 || j>0){
-      const op=B[i][j];
-      if(op==="m"){ out[i-1]=held[j-1]; i--; j--; }
-      else if(op==="e"){ i--; }
-      else { j--; }
+    // monotonic greedy: walk both lists, matching in order by best pitch fit
+    let hi=0;
+    for(let i=0;i<expected.length;i++){
+      const tf=noteToFreq(expected[i]);
+      // among remaining held notes, pick the earliest that's a reasonable match,
+      // but don't consume more held notes than remain for the rest of expected
+      const remainExpected=expected.length-i;
+      let bestIdx=-1,bestErr=Infinity;
+      for(let j=hi;j<=held.length-remainExpected;j++){
+        if(j<0) continue;
+        const err=Math.abs(1200*Math.log2(held[j].freq/tf));
+        if(err<bestErr){ bestErr=err; bestIdx=j; }
+      }
+      if(bestIdx>=0){ out[i]=held[bestIdx]; hi=bestIdx+1; }
     }
     return out;
   }
@@ -2076,21 +1417,15 @@
     const cents=Math.round(1200*Math.log2(held.freq/tf));
     return {cents, note:freqToNoteData(held.freq)};
   }
-  // Classify a single-tone follow-me take: returns {cap, reason}
-  // reason: null (ok) · "none" (no signal at all) · "short" (nothing held long enough)
-  //
-  // When the singer held several distinct pitches, take the one they committed to
-  // — the longest — rather than whichever happened to land nearest the target.
-  // Picking the nearest would let someone wander across several wrong notes and
-  // still score on the one that brushed past, which is the same "luckiest moment
-  // wins" flaw the frame-level grading had.
+  // classify a single-tone follow-me take: returns {cap, reason}
+  // reason: null (ok) · "none" (no signal at all) · "short" (signal but nothing held long enough)
   function classifyHeld(targetNote, samples, held){
     const voiced = samples.some(s=>s.freq!==null);
     if(held && held.length){
-      let bi=0;
-      held.forEach((h,idx)=>{ if(h.dur>held[bi].dur) bi=idx; });
-      return {cap:heldToCap(targetNote,held[bi]), reason:null,
-              detail:{dur:held[bi].dur, holds:held.length}};
+      const tf=noteToFreq(targetNote);
+      let bi=0,berr=Infinity;
+      held.forEach((h,idx)=>{ const e=Math.abs(1200*Math.log2(h.freq/tf)); if(e<berr){berr=e;bi=idx;} });
+      return {cap:heldToCap(targetNote,held[bi]), reason:null};
     }
     return {cap:null, reason: voiced ? "short" : "none"};
   }
@@ -2100,27 +1435,9 @@
   // why the mic failed, for a useful message
   let micError="";
   async function startMic(){
-    return withTimeout(startMicInner(), MIC_START_MS, false).then(ok=>{
-      // A timeout here means startMicInner is still pending and may yet resolve
-      // true, leaving a half-built graph nobody owns — tear it down so the next
-      // attempt starts clean rather than inheriting a dead stream.
-      if(!ok && !micTrackLive()){ if(!micError) micError="notlive"; releaseMicHard(); }
-      return ok;
-    });
-  }
-  async function startMicInner(){
-    // Fast path: we already hold a live stream (desktop, soft-released between
-    // takes). Un-mute the track and make sure the context is running — iOS can
-    // suspend it on interruption / audio-route change, and a suspended context
-    // reads as pure silence.
-    if(ac && analyser && micStream){
-      try{ micStream.getAudioTracks().forEach(t=>t.enabled=true); }catch(e){}
-      const up=await ensureAudioCtx();
-      // the stream can be revoked out from under us (device unplugged, permission
-      // reset) — if it's no longer usable, fall through and acquire a fresh one
-      if(up && micTrackLive()) return true;
-      releaseMicHard();
-    }
+    // Even if we already have an analyser, the context may have been suspended by
+    // iOS (interruption / audio-route change). Resume it or the meter reads silence.
+    if(ac && analyser){ await ensureAudioCtx(); return true; }
     micError="";
     // mic needs a secure context — file:// and plain http are blocked by browsers
     if(!window.isSecureContext && location.protocol!=="http:"){
@@ -2133,96 +1450,29 @@
       if(!ac) ac=new (window.AudioContext||window.webkitAudioContext)();
       // Quiet room: raw signal (best for pitch). Noisy room: let the browser clean it up.
       const useProcessing = (room==="noisy");
-      // The standard three constraints aren't enough on Chromium + a headset:
-      // Windows/Chrome treat a headset as a "communications" device and apply a
-      // voice DSP that preserves the spectrum but scrambles the WAVEFORM's
-      // periodicity — which is exactly what breaks pitch detection (a strong
-      // fundamental that nonetheless has no findable period). Phones don't do
-      // this. So in quiet mode we also set every vendor/experimental flag that
-      // Chromium recognises to switch that processing off. Unknown flags are
-      // ignored harmlessly by browsers that don't support them.
-      const audio = useProcessing ? {
-        echoCancellation:true, noiseSuppression:true, autoGainControl:true
-      } : {
-        echoCancellation:false, noiseSuppression:false, autoGainControl:false,
-        // Chromium goog* flags (older but still honoured on many builds)
-        googEchoCancellation:false, googNoiseSuppression:false,
-        googAutoGainControl:false, googHighpassFilter:false,
-        googTypingNoiseDetection:false, googAudioMirroring:false,
-        // ask Chromium not to treat this as a voice-call device
-        voiceIsolation:false
-      };
-      const constraints={ audio };
-      // Drop any previous stream before opening a new one — two live streams on
-      // the same device is what leaves the recording indicator stuck on.
-      releaseMicHard();
+      const constraints={ audio:{
+        echoCancellation: useProcessing,
+        noiseSuppression: useProcessing,
+        autoGainControl: useProcessing
+      }};
       try{
         micStream=await navigator.mediaDevices.getUserMedia(constraints);
       }catch(e){
-        if(e && (e.name==="NotAllowedError" || e.name==="SecurityError")){
-          micError="blocked"; return false;
-        }
-        if(e && (e.name==="NotFoundError" || e.name==="OverconstrainedError")){
-          // no input device at all, or the constraints can't be met — retry plain
-          try{ micStream=await navigator.mediaDevices.getUserMedia({audio:true}); }
-          catch(e2){
-            micError = (e2 && e2.name==="NotFoundError") ? "nodevice" : "failed";
-            return false;
-          }
-        } else {
-          // some browsers reject the constraint object — fall back to plain audio
-          try{ micStream=await navigator.mediaDevices.getUserMedia({audio:true}); }
-          catch(e2){
-            micError = (e2 && e2.name==="NotAllowedError") ? "blocked" : "failed";
-            return false;
-          }
-        }
+        // some browsers reject the constraint object — fall back to plain audio
+        micStream=await navigator.mediaDevices.getUserMedia({audio:true});
       }
-      // make sure the context is actually running before we wire the mic in.
-      // This is the call that hangs on Edge, so it's bounded — and a context
-      // that never reaches "running" means silence, not a working mic.
-      const up=await ensureAudioCtx();
-      if(!up){ micError="noaudio"; releaseMicHard(); return false; }
+      // make sure the context is actually running before we wire the mic in
+      await ensureAudioCtx();
       const src=ac.createMediaStreamSource(micStream);
-      analyser=ac.createAnalyser();
-      // Size the analysis window by DURATION, not a fixed sample count. A fixed
-      // 2048 samples is ~43ms at 48kHz — fine — but only ~21ms at 96kHz and
-      // ~11ms at 192kHz, which pro/USB audio interfaces commonly run. In that
-      // short a window a low-ish note has too few cycles, and the autocorrelation
-      // locks onto a harmonic instead of the fundamental: a sung C4 gets reported
-      // as ~1000Hz or bounces between wild values. (This is why the app worked on
-      // phones, which run at 48kHz, but failed on some computers.) fftSize must
-      // be a power of two, so pick the smallest one that holds at least ~43ms at
-      // whatever rate this device actually uses.
-      analyser.fftSize=fftSizeForRate(ac.sampleRate);
-      buf=new Float32Array(analyser.fftSize);
-      // Band-limit the mic signal to the range that can contain a real sung
-      // fundamental BEFORE pitch analysis. This is the load-bearing fix for wrong
-      // pitches on some computers: their mic/interface delivers strong content
-      // far above the voice (mic resonance, electrical HF noise, room hiss) that
-      // the pitch detector locks onto — reporting a note octaves too high, or
-      // scattering across the spectrum frame to frame. Phones don't do this, so
-      // they were never affected. A highpass at 60Hz kills mains hum and DC
-      // drift; a lowpass at 1400Hz sits just above the highest target (C6,
-      // ~1047Hz) and removes the misleading high harmonics and noise. The
-      // detector then only ever sees plausible vocal frequencies.
-      const hp=ac.createBiquadFilter();
-      hp.type="highpass"; hp.frequency.value=60; hp.Q.value=0.7;
-      const lp=ac.createBiquadFilter();
-      lp.type="lowpass"; lp.frequency.value=1400; lp.Q.value=0.7;
-      if(BYPASS_FILTERS){
-        src.connect(analyser); micFilters=null;   // raw signal, like the old version
-      } else {
-        src.connect(hp); hp.connect(lp); lp.connect(analyser);
-        micFilters=[hp,lp];
-      }
+      analyser=ac.createAnalyser(); analyser.fftSize=2048; buf=new Float32Array(analyser.fftSize);
+      src.connect(analyser);
       micSrc=src;
       // The stream can exist before the track is actually delivering audio (iOS is
       // slow to come up after repeated release/acquire). Wait for it to go live.
-      const ok=await micLive(MIC_LIVE_MS);
-      if(!ok){ micError="notlive"; releaseMicHard(); return false; }
+      const ok=await micLive(2500);
+      if(!ok){ micError="notlive"; return false; }
       return true;
-    }catch(e){ micError="failed"; releaseMicHard(); return false; }
+    }catch(e){ micError="failed"; return false; }
   }
   // True once the audio track reports "live" AND the analyser sees real samples.
   function micTrackLive(){
@@ -2250,70 +1500,28 @@
   function micStatusTitle(){
     if(micError==="insecure") return "Microphone needs https";
     if(micError==="unsupported") return "Microphone not supported";
-    if(micError==="nodevice") return "No microphone found";
-    if(micError==="noaudio") return "Audio didn't start";
     if(micError==="notlive") return "Microphone didn't start";
     return "Microphone blocked";
   }
   function micStatusSub(){
     if(micError==="insecure") return "open this page over https (e.g. your GitHub Pages link) — browsers block the mic on local files";
     if(micError==="unsupported") return "this browser doesn't provide microphone access";
-    if(micError==="nodevice") return "no microphone is connected — plug one in and press Play to try again";
-    // the Edge hang lands here: permission was granted, but the audio engine
-    // never came up, so say exactly that rather than blaming permissions
-    if(micError==="noaudio") return "microphone permission was granted, but audio could not start — press Play to try again";
     if(micError==="notlive") return "the mic didn't come up in time — press Play to try again";
     return "allow mic access in your browser to continue";
   }
 
-  // Resolve to `v` if `p` hasn't settled within `ms`. Used to bound calls that
-  // can hang rather than reject — see ensureAudioCtx.
-  function withTimeout(p, ms, v){
-    return Promise.race([ Promise.resolve(p).catch(()=>v), wait(ms).then(()=>v) ]);
-  }
-  // Bring the audio context up, and report whether it actually got there.
-  //
-  // ac.resume() is specified to return a promise, but Chromium (incl. Edge) can
-  // leave it *permanently pending* rather than rejecting when the context can't
-  // start — typically when the call no longer sits on a user-gesture path. The
-  // permission prompt does exactly that: granting it consumes the gesture, and
-  // the await on getUserMedia crosses a task boundary, so the resume() that
-  // follows can hang forever. Anything that awaits it hangs with it, which is
-  // why this must be bounded rather than trusted.
-  //
-  // Returns true only if the context is genuinely "running" — a resolved resume()
-  // is not sufficient evidence, so the state is checked directly.
   async function ensureAudioCtx(){
-    if(!ac){
-      try{ ac=new (window.AudioContext||window.webkitAudioContext)(); }
-      catch(e){ return false; }
-    }
-    if(ac.state==="running") return true;
-    // "interrupted" is a Safari/iOS state that also needs a resume
-    if(ac.state==="suspended" || ac.state==="interrupted"){
-      await withTimeout(ac.resume(), AC_RESUME_MS, null);
-    }
-    return ac.state==="running";
+    if(!ac) ac=new (window.AudioContext||window.webkitAudioContext)();
+    if(ac.state==="suspended") await ac.resume();
   }
 
   // ---------- results ----------
-  function addDiagRow(text){
-    const cell=document.createElement("div");
-    cell.className="rcell diag-row";
-    cell.textContent=text;
-    resultsGrid.appendChild(cell);
-  }
   function addResult(expected,best,reason){
     const cents=best?best.cents:null;
     const sang=best?best.note.name+" "+(best.note.centsFromNearest>=0?"+":"")+best.note.centsFromNearest+"¢":"—";
     let pw;
-    if(cents!==null){
-      // if the sung note fell below the lowest target, describe how far below E2
-      // rather than how far from this specific target
-      pw = belowFloorWords(sungFreqOf(best.note)) || plainWords(cents);
-    }
+    if(cents!==null) pw=plainWords(cents);
     else if(reason==="short") pw={txt:"tone too short — hold it a bit longer",tone:"bad"};
-    else if(reason==="unsteady") pw={txt:"pitch kept moving — hold one steady tone",tone:"bad"};
     else pw={txt:"no sound detected",tone:"bad"};
     const cls = cents===null ? "bad" : pw.tone;
     const cell=document.createElement("div");
@@ -2337,7 +1545,7 @@
 
   function setBusy(b){
     running=b;
-    document.querySelectorAll(".tab, .btn, #add-note, #timbre button, #sing-time button, #tempo-set button, #grade-mode button, #detect-mode button, .arp-box select, .arp-box input").forEach(el=>el.style.pointerEvents=b?"none":"");
+    document.querySelectorAll(".tab, .btn, #add-note, #timbre button, #sing-time button, #tempo-set button, #grade-mode button, .arp-box select, .arp-box input").forEach(el=>el.style.pointerEvents=b?"none":"");
     updatePlayButtons();
   }
 
@@ -2348,8 +1556,6 @@
       const nd=best.note;
       noteOut.innerHTML=nd.name+' <small>'+(nd.centsFromNearest>=0?"+":"")+nd.centsFromNearest+'¢</small>';
       centsOut.innerHTML=(best.cents>0?"+":"")+best.cents+' <small>¢</small>';
-      const below=belowFloorWords(sungFreqOf(nd));
-      if(below) return nd.name+" is "+below.txt;
       const pw=plainWords(best.cents);
       return pw.txt==="on pitch" ? "on pitch — nicely done" : nd.name+" is "+pw.txt+" than "+targetNote;
     }
@@ -2395,23 +1601,18 @@
     stage("Sing!",{cls:"",sub:"your turn — hold the note"});
     runDots(winMs);
     listening=true; detectLoop(tf);
-    // no hard grace needed: the stable-window search already skips a scoop
-    const r=await captureWindow(winMs, 0, tf);
+    const best=await captureWindow(winMs, 400);  // ignore first 400ms
     listening=false; cancelAnimationFrame(raf); parkNeedle();
     hideDots(); wave.classList.remove("on");
     releaseMic();
-    return {cap:r.cap, reason:r.reason, detail:r.detail};
+    return {cap:best, reason: best?null:"none"};
   }
 
   playToneBtn.onclick=async ()=>{
     if(running) return;
     if(!seq.length){ stage("Add at least one tone.",{cls:"warn"}); return; }
-    // step through the tones one at a time.
-    // Everything from here is wrapped so setBusy(false) always runs: an early
-    // return (mic failure, stopped run) used to leave every control with
-    // pointer-events:none, locking the app until reload.
+    // step through the tones one at a time
     setBusy(true);
-    try{
     await ensureAudioCtx();
     if(timbre==="piano") await ensurePiano();
 
@@ -2423,7 +1624,6 @@
     stepCaps[i]=cap||null;
     const fbLine=commitFeedback(seq[i],cap,reason);
     addResult(seq[i],cap,reason);
-    if(DIAG){ const d=diagSummary(); if(d) addDiagRow(d); }
 
     stepIdx++;
     if(stepIdx>=seq.length){
@@ -2435,7 +1635,7 @@
       stage("Ready for tone "+(stepIdx+1),{cls:"muted",sub:fbLine});
       playToneBtn.textContent="▶ Play next tone";
     }
-    } finally { setBusy(false); }
+    setBusy(false);
   };
 
   playPhraseBtn.onclick=async ()=>{
@@ -2446,12 +1646,11 @@
   // ================= WHOLE PHRASE =================
   async function runWhole(){
     setBusy(true);
-    try{
-      await ensureAudioCtx();
-      if(timbre==="piano") await ensurePiano();
-      await playWholeThenRepeat();
-      playPhraseBtn.textContent="▶ Play a phrase again";
-    } finally { setBusy(false); }
+    await ensureAudioCtx();
+    if(timbre==="piano") await ensurePiano();
+    await playWholeThenRepeat();
+    playPhraseBtn.textContent="▶ Play a phrase again";
+    setBusy(false);
   }
 
   // map an index in the played sequence back to the chip it corresponds to
@@ -2501,7 +1700,6 @@
       const missReason = voiced ? "short" : "none";
       resultsGrid.innerHTML="";
       caps.forEach((c,i)=>addResult(pseq[i],c,c?null:missReason));
-      if(DIAG){ const d=diagSummary(); if(d) addDiagRow(d); }
       showScore(caps,pseq.length);
       let extra="";
       if(held.length!==pseq.length){
@@ -2520,20 +1718,19 @@
 
     listening=true;
     const caps=new Array(pseq.length).fill(null);
-    const reasons=new Array(pseq.length).fill(null);
+    const graceMs=350;
     for(let i=0;i<pseq.length && running;i++){
       const tf=noteToFreq(pseq[i]);
       clearChipHighlights(); chipPlaying(chipIndexFor(i),true);
       detectLoop(tf);
-      // grace of 0: the stable-window search already ignores the approach to the tone
-      const r=await captureWindow(perNote, 0, tf);
+      const best=await captureWindow(perNote, i===0?graceMs:0);
       cancelAnimationFrame(raf);
-      caps[i]=r.cap; reasons[i]=r.reason;
+      caps[i]=best;
     }
     listening=false; clearChipHighlights(); parkNeedle();
     hideDots(); releaseMic();
     resultsGrid.innerHTML="";
-    caps.forEach((c,i)=>addResult(pseq[i],c,reasons[i]));
+    caps.forEach((c,i)=>addResult(pseq[i],c));
     showScore(caps,pseq.length);
     if(caps.length) commitFeedback(pseq[pseq.length-1],caps[caps.length-1]);
     stage("Complete",{cls:"",sub:"see results below"});
@@ -2592,11 +1789,6 @@
   // otherwise playback is silent and the meter reads nothing.
   document.addEventListener("visibilitychange",()=>{
     if(!document.hidden && ac && ac.state==="suspended"){ ac.resume().catch(()=>{}); }
-    // Don't hold a live mic on a backgrounded tab: on desktop the stream would
-    // otherwise survive the whole session and keep the browser's recording
-    // indicator lit while the user is elsewhere. The next run re-acquires it —
-    // silently, since permission has already been granted for this origin.
-    if(document.hidden && !running) releaseMicHard();
   });
   window.addEventListener("pageshow",()=>{
     if(ac && ac.state==="suspended") ac.resume().catch(()=>{});
@@ -2605,7 +1797,6 @@
   renderChips();
   resetFlow();
   applyGradeUI();
-  syncMeterScale();
   updateSettingsSummary();
 })();
 </script>
