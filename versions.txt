@@ -1,4 +1,7 @@
->>> Current version 2.1
+>>> Current version 2.2
+Update of the layout (Tone)
+
+>>> Version 2.1
 Pitch detection adjustment
 Forgiving/Strict detection modes (new Setting)
 Sample-rate independence and the mic filter chain
